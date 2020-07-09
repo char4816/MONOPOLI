@@ -1,5 +1,7 @@
 # Script workflow
 
+library(coronavirus)
+update_dataset()
 # Collect COVID data
 # devtools::install_github("RamiKrispin/coronavirus", force=TRUE)
 source('./Scripts/virus_data.R')
