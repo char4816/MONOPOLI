@@ -700,6 +700,7 @@ training_ready_OG <- training_ready
 # filter training data
 training_ready_sub_tmp <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
+  dplyr::select(-contains("derived_I_curve")) %>%
   dplyr::select(-contains("death_cum")) %>%
   dplyr::select(-contains("movingAverage")) %>%
   dplyr::select(-contains("MalePercent")) %>%
