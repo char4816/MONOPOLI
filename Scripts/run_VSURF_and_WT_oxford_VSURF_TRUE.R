@@ -760,6 +760,7 @@ for(name in excludedCountries){
 
 training_ready_sub2 <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
+  dplyr::select(-contains("derived_I_curve")) %>%
   dplyr::select(-contains("death_cum")) %>%
   dplyr::select(-contains("movingAverage")) %>%
   dplyr::select(-contains("MalePercent")) %>%
