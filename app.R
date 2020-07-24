@@ -31,6 +31,17 @@ library(reshape2)
 library(shinyjs)
 library(plotly)
 library(data.table)
+# Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.2') # for 64-bit version
+# Sys.setenv(JAVA_HOME='C:\\Program Files (x86)\\Java\\jre7') # for 32-bit version
+# library(rJava)
+# library(RLadyBug)
+# Sys.setenv('JAVA_HOME'="C:/Program Files/Java/jdk-14.0.2")
+# Sys.setenv(JAVA_HOME="C:/Program Files/Java/jdk-14.0.2/")
+# Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre1.8.0_261')
+# Sys.setenv(JAVA_HOME="C:/Program Files/Java/jdk-14.0.2")
+# library(rJava)
+# Sys.setenv(JAVA_HOME="C:/Program Files/Java/jdk-14.0.2")
+# https://stackoverflow.com/questions/9120270/how-can-i-install-rjava-for-use-with-64bit-r-on-a-64-bit-windows-computer
 
 clean_plotly_leg <- function(.plotly_x, .extract_str) {
   # Inpects an x$data list in a plotly object, cleans up legend values where appropriate
@@ -233,16 +244,17 @@ ui <- fluidPage(
                 "Bangladesh" = "BGD",
                 "Belarus" = "BLR",
                 "Belgium" = "BEL",
+                "Benin" = "BEN",
                 "Bolivia" = "BOL",
                 "Bosnia and Herzegovina" = "BIH",
                 "Brazil" = "BRA",
                 "Bulgaria" = "BGR",
+                "Burkina Faso" = "BFA",
                 "Cameroon" = "CMR",
                 "Canada" = "CAN",
                 "Chile" = "CHL",
                 "Colombia" = "COL",
                 "Costa Rica" = "CRI",
-                "Cote d'Ivoire" = "CIV",
                 "Croatia" = "HRV",
                 "Czechia" = "CZE",
                 "Denmark" = "DNK",
@@ -282,6 +294,7 @@ ui <- fluidPage(
                 "Mexico" = "MEX",
                 "Moldova" = "MDA",
                 "Morocco" = "MAR",
+                "Mozambique" = "MOZ",
                 "Nepal" = "NPL",
                 "Netherlands" = "ANT",
                 "New Zealand" = "NZL",
@@ -299,6 +312,7 @@ ui <- fluidPage(
                 "Qatar" = "QAT",
                 "Romania" = "ROU",
                 "Russia" = "RUS",
+                "Rwanda" = "RWA",
                 "Saudi Arabia" = "SAU",
                 "Senegal" = "SEN",
                 "Serbia" = "SRB",
@@ -313,11 +327,13 @@ ui <- fluidPage(
                 "Tajikistan" = "TJK",
                 "Thailand" = "THA",
                 "Turkey" = "TUR",
+                "Uganda" = "UGA",
                 "Ukraine" = "UKR",
                 "United Arab Emirates" = "ARE",
                 "United Kingdom" = "GBR",
                 "United States" = "USA",
                 "Venezuela" = "VEN",
+                "Yemen" = "YEM",
                 "Zambia" = "ZMB"
               ), selected = "USA"
   ),
@@ -331,12 +347,26 @@ ui <- fluidPage(
   
   # sliderInput("dateAlongCurve", label=HTML("Choose a timepoint at which new NPIs are implemented <br/> 0 = early-outbreak, 10 = late-outbreak/recent"), value = "8", min = 0, max = 10),
   # Sidebar with a slider input for the number of bins
-      sliderInput("dateAlongCurve",
+  sliderInput("dateAlongCurve",
                   label=HTML("Choose a day at which new NPIs are implemented. If the chosen date is too early or too late for the chosen country's available data it will automatically be adjusted to the nearest available endpoint."),
                   min = as.Date("2020-02-01","%Y-%m-%d"),
                   max = as.Date(Sys.Date(),"%Y-%m-%d"),
                   value=as.Date("2020-06-13"),
                   timeFormat="%Y-%m-%d"),
+  sliderInput("recoveryTime",
+              label=HTML("Select the mean COVID-19 recovery time for the SEIR model."),
+              min = 2,
+              max = 20,
+              value = 14.5, step = 0.1
+              ),
+  
+  sliderInput("latencyTime",
+              label=HTML("Select the mean COVID-19 latency time for the SEIR model."),
+              min = 0,
+              max = 14,
+              value = 5.2, step = 0.1
+  ),
+  
   selectInput("NPIprofile", label=HTML("Choose an NPI profile from the 4 Scenarios. This profile will be caried forward in time from your chosen date in an SEIR model:"),
               c("Status Quo -- current NPIs are sustained forward in time" = "Status Quo",
                 "Pre-COVID-NPI -- NPIs from pre-COVID timeperiod are applied forward in time" = "Pre-COVID-NPI",
@@ -613,6 +643,8 @@ server <- function(input, output, session) {
       chosen_initialInfected = as.numeric(input$chosen_initialInfected_textValue),
       chosen_initialExposed = as.numeric(input$chosen_initialExposed_textValue),
       dateAlongCurve = as.Date(input$dateAlongCurve),
+      recoveryTime = as.numeric(input$recoveryTime),
+      latencyTime = as.numeric(input$latencyTime),
       NPIprofile = input$NPIprofile,
       Google_Retail_recreation_Custom = as.numeric(input$Google_Retail_recreation_Custom),
       Google_Grocery_pharmacy_Custom = as.numeric(input$Google_Grocery_pharmacy_Custom),

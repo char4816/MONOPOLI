@@ -1,94 +1,97 @@
 index,iso,Cname
-1,AFG,Afghanistan
 2,ARG,Argentina
 3,AUS,Australia
 4,AUT,Austria
 5,BGD,Bangladesh
 6,BLR,Belarus
 7,BEL,Belgium
-8,BOL,Bolivia
-9,BIH,Bosnia and Herzegovina
-10,BRA,Brazil
-11,BGR,Bulgaria
-12,CMR,Cameroon
-13,CAN,Canada
-14,CHL,Chile
-15,COL,Colombia
-16,CRI,Costa Rica
-17,CIV,Cote d'Ivoire
-18,HRV,Croatia
-19,CZE,Czechia
-20,DNK,Denmark
-21,DOM,Dominican Republic
-22,ECU,Ecuador
-23,EGY,Egypt
-24,SLV,El Salvador
-25,EST,Estonia
-26,FIN,Finland
-27,FRA,France
-28,GAB,Gabon
-29,DEU,Germany
-30,GHA,Ghana
-31,GRC,Greece
-32,GTM,Guatemala
-33,HTI,Haiti
-34,HND,Honduras
-35,HUN,Hungary
-36,IND,India
-37,IDN,Indonesia
-38,IRQ,Iraq
-39,IRL,Ireland
-40,ISR,Israel
-41,ITA,Italy
-42,JPN,Japan
-43,JOR,Jordan
-44,KAZ,Kazakhstan
-45,KEN,Kenya
-46,KOR,Korea
-47,KGZ,Kyrgyzstan
-48,LVA,Latvia
-49,LBN,Lebanon
-50,LTU,Lithuania
-51,LUX,Luxembourg
-52,MYS,Malaysia
-53,MLI,Mali
-54,MEX,Mexico
-55,MDA,Moldova
-56,MAR,Morocco
-57,NPL,Nepal
-58,ANT,Netherlands
-59,NZL,New Zealand
-60,NIC,Nicaragua
-61,NER,Niger
-62,NGA,Nigeria
-63,NOR,Norway
-64,PAK,Pakistan
-65,PAN,Panama
-66,PRY,Paraguay
-67,PER,Peru
-68,PHL,Philippines
-69,POL,Poland
-70,PRT,Portugal
-71,QAT,Qatar
-72,ROU,Romania
-73,RUS,Russia
-74,SAU,Saudi Arabia
-75,SEN,Senegal
-76,SRB,Serbia
-77,SGP,Singapore
-78,SVK,Slovakia
-79,SVN,Slovenia
-80,ZAF,South Africa
-81,ESP,Spain
-82,LKA,Sri Lanka
-83,SWE,Sweden
-84,CHE,Switzerland
-85,TJK,Tajikistan
-86,THA,Thailand
-87,TUR,Turkey
-88,UKR,Ukraine
-89,ARE,United Arab Emirates
-90,GBR,United Kingdom
-91,USA,United States
-92,VEN,Venezuela
-93,ZMB,Zambia
+8,BEN,Benin
+9,BOL,Bolivia
+10,BIH,Bosnia and Herzegovina
+11,BRA,Brazil
+12,BGR,Bulgaria
+13,BFA,Burkina Faso
+14,CMR,Cameroon
+15,CAN,Canada
+16,CHL,Chile
+17,COL,Colombia
+18,CRI,Costa Rica
+19,HRV,Croatia
+20,CZE,Czechia
+21,DNK,Denmark
+22,DOM,Dominican Republic
+23,ECU,Ecuador
+24,EGY,Egypt
+25,SLV,El Salvador
+26,EST,Estonia
+27,FIN,Finland
+28,FRA,France
+29,GAB,Gabon
+30,DEU,Germany
+31,GHA,Ghana
+32,GRC,Greece
+33,GTM,Guatemala
+34,HTI,Haiti
+35,HND,Honduras
+36,HUN,Hungary
+37,IND,India
+38,IDN,Indonesia
+39,IRQ,Iraq
+40,IRL,Ireland
+41,ISR,Israel
+42,ITA,Italy
+43,JPN,Japan
+44,JOR,Jordan
+45,KAZ,Kazakhstan
+46,KEN,Kenya
+47,KOR,Korea
+48,KGZ,Kyrgyzstan
+49,LVA,Latvia
+50,LBN,Lebanon
+51,LTU,Lithuania
+52,LUX,Luxembourg
+53,MYS,Malaysia
+54,MLI,Mali
+55,MEX,Mexico
+56,MDA,Moldova
+57,MAR,Morocco
+58,MOZ,Mozambique
+59,NPL,Nepal
+60,ANT,Netherlands
+61,NZL,New Zealand
+62,NIC,Nicaragua
+63,NER,Niger
+64,NGA,Nigeria
+65,NOR,Norway
+66,PAK,Pakistan
+67,PAN,Panama
+68,PRY,Paraguay
+69,PER,Peru
+70,PHL,Philippines
+71,POL,Poland
+72,PRT,Portugal
+73,QAT,Qatar
+74,ROU,Romania
+75,RUS,Russia
+76,RWA,Rwanda
+77,SAU,Saudi Arabia
+78,SEN,Senegal
+80,SGP,Singapore
+81,SVK,Slovakia
+82,SVN,Slovenia
+83,ZAF,South Africa
+84,ESP,Spain
+85,LKA,Sri Lanka
+86,SWE,Sweden
+87,CHE,Switzerland
+88,TJK,Tajikistan
+89,THA,Thailand
+90,TUR,Turkey
+91,UGA,Uganda
+92,UKR,Ukraine
+93,ARE,United Arab Emirates
+94,GBR,United Kingdom
+95,USA,United States
+96,VEN,Venezuela
+97,YEM,Yemen
+98,ZMB,Zambia
