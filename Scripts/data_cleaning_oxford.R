@@ -16,6 +16,8 @@ library(tidyr)
 library(lubridate)
 library(tidyverse)
 
+downloadFlag = T
+
 pre_autofill_Google = T
 post_autofill_Google = T
 
@@ -200,7 +202,9 @@ summary(data_features)
 
 #---New way to Add Google Movement Data---#########################################################################################################################################################################
 '%ni%' <- Negate('%in%')
-download.file("https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv","./InputData/Global_Mobility_Report.csv")
+if(downloadFlag == T){
+  download.file("https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv","./InputData/Global_Mobility_Report.csv")
+}
 GoogData <- read.csv("./InputData/Global_Mobility_Report.csv", header=T)
 # Get just the overall country mobility stats
 GoogData_sub <- subset(GoogData, sub_region_1 == "" & sub_region_2 == "")
@@ -305,7 +309,9 @@ data_features3$weekdays <- as.numeric(data_features3$weekdays)
 
 # incorporate oxford NPI data
 # https://github.com/OxCGRT/covid-policy-tracker/blob/master/documentation/codebook.md
-download.file("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv","./InputData/OxCGRT_latest.csv")
+if(downloadFlag == T){
+  download.file("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv","./InputData/OxCGRT_latest.csv")
+}
 OxData <- read.csv("./InputData/OxCGRT_latest.csv", header=T)
 OxData$Date <- str_replace(OxData$Date,"(\\d{4})(\\d{2})(\\d{2})$","\\1-\\2-\\3")
 OxData$Date <- as.Date(OxData$Date)
@@ -560,6 +566,29 @@ data_features4[which(data_features4$Country == "New Zealand"),c("PopulationSmoki
 data_features4[which(data_features4$Country == "Lebanon"),c("GINIindex")] <- 31.8
 # https://www.un.org/en/development/desa/population/publications/pdf/ageing/household_size_and_composition_around_the_world_2017_data_booklet.pdf
 data_features4[which(data_features4$Country == "Lebanon"),c("Ave_household_size")] <- 4.3
+
+# https://data.worldbank.org/indicator/EN.POP.DNST
+data_features4[which(data_features4$Country == "Korea, South"),c("PopulationDensity")] <- 212
+
+# https://tobaccoatlas.org/country/yemen/
+data_features4[which(data_features4$Country == "Yemen"),c("PopulationSmoking_male")] <- 18.8
+data_features4[which(data_features4$Country == "Yemen"),c("PopulationSmoking_female")] <- 6.3
+data_features4[which(data_features4$Country == "Yemen"),c("Latitude")] <- 15.5527
+data_features4[which(data_features4$Country == "Yemen"),c("Longitude")] <- 48.5164
+
+# https://tobaccoatlas.org/country/rwanda/
+data_features4[which(data_features4$Country == "Rwanda"),c("PopulationSmoking_male")] <- 12.4
+
+# https://scholar.harvard.edu/files/alesina/files/fractionalization.pdf
+data_features4[which(data_features4$Country == "Mozambique"),c("EFindex")] <- 0.6932
+
+# https://tradingeconomics.com/namibia/physicians-per-1-000-people-wb-data.html
+data_features4[which(data_features4$Country == "Namibia"),c("PhysicianDensity")] <- 0.4182
+
+# These countries seem to currently have a bug in their google mobility data, and for now need to be removed
+data_features4 <- subset(data_features4, Country!= "Afghanistan")
+data_features4 <- subset(data_features4, Country!= "Serbia")
+data_features4 <- subset(data_features4, Country!= "Georgia")
 
 write.csv(data_features4, "./InputData/ML_features_oxford.csv", row.names = F)
 

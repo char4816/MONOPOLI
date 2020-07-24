@@ -1,3 +1,9 @@
+# Continue with updated data but without re-running VSURF (use old saved run of VSURF)
+
+# Written by:  Chris H Arehart
+# Written on: March 24th, 2020
+# Updated on: June 20th, 2020
+
 library(tidyverse)
 library(EpiEstim)
 library(R0)
@@ -70,9 +76,6 @@ NPIflag2 <- "lastNPI"
 # for example if testingTimeFrame <- 0.8, then 20% of the timeseries will be used to train, and 80% will be used to predict
 testingTimeFrame <- 1
 
-
-
-
 '%ni%' <- Negate('%in%')
 simpleCap <- function(x) {
   s <- strsplit(x, " ")[[1]]
@@ -87,55 +90,6 @@ simpleCap <- function(x) {
 
 # Choose the testing country
 testing_country <- "USA"
-
-# make country lists, these are the ones that we have NPI data collected for
-# https://docs.google.com/spreadsheets/d/1vrKvs52OAxuB7x2kT9r1q6IcIBxGEQsNRHsK_o7h3jo/edit#gid=378237553
-# training_countries_all <- c("ITA","FRA","GBR")
-# training_countries_all <- c("ITA","GBR","ZAF","BRA","ESP","MYS","USA","SWE","AUT","CHE","DEU","FRA","DZA","ISR")
-# training_countries_all <- c("ITA","GBR","ZAF","BRA","ESP","KOR","USA","SWE","AUT","CHE","DEU","FRA","DZA","IRN","CAN","PRT","ISR","RUS","NOR","AUS","DNK","CHL","CZE","JPN","UKR","MAR","ARG")
-# training_countries_all <- c("ITA","GBR","ZAF","BRA","ESP","MYS","HUB","KOR","USA","SWE","AUT","CHE","DEU","FRA","DZA","IRN","CAN","TUR","BEL","ANT","PRT","ISR","RUS","NOR","IRL","AUS","IND","DNK","CHL","CZE","JPN","UKR","MAR","ARG","SGP","ROU")
-
-# training_countries_all <-
-#   c(
-#     "ITA",
-#     "GBR",
-#     "ZAF",
-#     "BRA",
-#     "ESP",
-#     "MYS",
-#     "KOR",
-#     "USA",
-#     "SWE",
-#     "AUT",
-#     "CHE",
-#     "DEU",
-#     "FRA",
-#     "DZA",
-#     "IRN",
-#     "CAN",
-#     "TUR",
-#     "BEL",
-#     "ANT",
-#     "PRT",
-#     "ISR",
-#     "RUS",
-#     "NOR",
-#     "IRL",
-#     "AUS",
-#     "IND",
-#     "DNK",
-#     "CHL",
-#     "CZE",
-#     "JPN",
-#     "UKR",
-#     "MAR",
-#     "ARG",
-#     "SGP",
-#     "ROU"
-#   )
-# training_countries <- training_countries_all
-# training_countries <-
-#   training_countries_all[which(training_countries_all != testing_country)]
 
 data_clean <- read.csv("./InputData/ML_features_oxford.csv")
 data_clean$date <- as.Date(data_clean$date)
@@ -166,7 +120,7 @@ D1 <-
   )]
 earliestD <- which(data_clean1$confirmed_cum >= 50)[1]
 # if(D1 - data_clean1$date[start])
-D0 <- data_clean1$date[earliestD] + 16 #"2020-03-21"
+D0 <- data_clean1$date[earliestD] + 18 #"2020-03-21"
 print(D1)
 print(D2)
 print(D3)
@@ -180,7 +134,7 @@ dateList[dateList < D0] <- D0
 # }else{
 #   forecastingTime = 14
 # }
-forecastingTime = 20
+forecastingTime = 30
 
 data_clean <- read.csv("./InputData/ML_features_oxford.csv")
 data_clean$date <- as.Date(data_clean$date)
@@ -190,111 +144,6 @@ data_clean <- subset(data_clean, date <= D4)
 # Looking at the data
 glimpse(data_clean)
 summary(data_clean)
-
-#---Estimating reproduction numbers, R0---#########################################################################################################################################################################
-# We are using the epiestim package to calculate the R0 for countries. This requires two things
-# 1. specific information about the serial intervals for COVID
-# 2. the timeseries incidence data.
-# "SI for Serial Intervals.
-# Determination of the serial interval, the time between the start of symptoms in the primary patient (infector)
-# and onset of symptoms in the patient receiving that infection from the infector (the infectee)"
-# Table 1 from https://www.medrxiv.org/content/10.1101/2020.04.13.20062760v1
-# "we calculate a weighted mean of the published parameters and inferred a serial interval described
-# by a gamma distribution, parameterised with mean SI of 4.56 days (credible interval: 2.54 - 7.36)
-# and standard deviation 4.53 days (credible interval 4.17 - 5.05)."
-
-# serialIntervals = tibble(
-#   mean_si_estimate = c(3.96, 6.3, 4.22, 4.56, 3.95, 5.21, 4.7, 7.5, 6.6),
-#   mean_si_estimate_low_ci = c(3.53, 5.2, 3.43, 2.69,-4.47, -3.35, 3.7, 5.3, 0.7),
-#   mean_si_estimate_high_ci = c(4.39, 7.6, 5.01, 6.42, 12.51, 13.94, 6.0, 19.0, 19.0),
-#   std_si_estimate = c(4.75, 4.2, 0.4, 0.95, 4.24, 4.32, 2.3, 3.4, NA),
-#   std_si_estimate_low_ci = c(4.46, 3.1, NA, NA, 4.03, 4.06, 1.6, NA, NA),
-#   std_si_estimate_high_ci = c(5.07, 5.3, NA, NA, 4.95, 5.58, 3.5, NA, NA),
-#   sample_size = c(468, 48, 135, 93, 45, 54, 28, 16, 90),
-#   population = c(
-#     "China",
-#     "Shenzhen",
-#     "Taijin",
-#     "Singapore",
-#     "Taijin",
-#     "Singapore",
-#     "SE Asia",
-#     "Wuhan",
-#     "Italy"
-#   ),
-#   source = c(
-#     "Zhanwei Du et al. Serial Interval of COVID-19 among Publicly Reported Confirmed Cases. Emerging Infectious Disease journal 26, (2020)",
-#     "Bi, Q. et al. Epidemiology and Transmission of COVID-19 in Shenzhen China: Analysis of 391 cases and 1,286 of their close contacts. Infectious Diseases (except HIV/AIDS) (2020) doi:10.1101/2020.03.03.20028423",
-#     "Tindale, L. et al. Transmission interval estimates suggest pre-symptomatic spread of COVID-19. Epidemiology (2020) doi:10.1101/2020.03.03.20029983",
-#     "Tindale, L. et al. Transmission interval estimates suggest pre-symptomatic spread of COVID-19. Epidemiology (2020) doi:10.1101/2020.03.03.20029983",
-#     "Ganyani, T. et al. Estimating the generation interval for COVID-19 based on symptom onset data. Infectious Diseases (except HIV/AIDS) (2020) doi:10.1101/2020.03.05.20031815",
-#     "Ganyani, T. et al. Estimating the generation interval for COVID-19 based on symptom onset data. Infectious Diseases (except HIV/AIDS) (2020) doi:10.1101/2020.03.05.20031815",
-#     "Nishiura, H., Linton, N. M. & Akhmetzhanov, A. R. Serial interval of novel coronavirus (COVID-19) infections. Int. J. Infect. Dis. (2020) doi:10.1016/j.ijid.2020.02.060",
-#     "Li, Q. et al. Early Transmission Dynamics in Wuhan, China, of Novel Coronavirus-Infected Pneumonia. N. Engl. J. Med. (2020) doi:10.1056/NEJMoa2001316",
-#     "Cereda, D. et al. The early phase of the COVID-19 outbreak in Lombardy, Italy. arXiv [q-bio.PE] (2020)"
-#   )
-# )
-# 
-# unk = function(x)
-#   ifelse(is.na(x), "unk", x)
-# 
-# SItable1 = serialIntervals %>% mutate(
-#   `Mean SI\n(95% CrI) days` = paste0(
-#     mean_si_estimate,
-#     "\n(",
-#     unk(mean_si_estimate_low_ci),
-#     "-",
-#     unk(mean_si_estimate_high_ci),
-#     ")"
-#   ),
-#   `Std SI\n(95% CrI) days` = paste0(
-#     unk(std_si_estimate),
-#     "\n(",
-#     unk(std_si_estimate_low_ci),
-#     "-",
-#     unk(std_si_estimate_high_ci),
-#     ")"
-#   )
-# ) %>% select(-contains("estimate")) %>% select(
-#   `Reference` = source,
-#   `Mean SI\n(95% CrI) days`,
-#   `Std SI\n(95% CrI) days`,
-#   `N` = sample_size,
-#   `Population` = population
-# )
-# 
-# wtSIs = serialIntervals %>% summarise(
-#   mean_si = weighted.mean(mean_si_estimate, sample_size, na.rm = TRUE),
-#   min_mean_si = weighted.mean(mean_si_estimate_low_ci, sample_size, na.rm = TRUE),
-#   max_mean_si = weighted.mean(mean_si_estimate_high_ci, sample_size, na.rm = TRUE),
-#   std_si  = weighted.mean(ifelse(is.na(
-#     std_si_estimate_low_ci
-#   ), NA, 1) * std_si_estimate, sample_size, na.rm = TRUE),
-#   min_std_si  = weighted.mean(std_si_estimate_low_ci, sample_size, na.rm = TRUE),
-#   max_std_si  = weighted.mean(std_si_estimate_high_ci, sample_size, na.rm = TRUE)
-#   #total = sum(sample_size)
-# ) %>% mutate(
-#   std_mean_si = (max_mean_si - min_mean_si) / 3.92,
-#   # TODO: fit gamma
-#   std_std_si = (max_std_si - min_std_si) / 3.92
-# )
-# 
-# config = make_config(
-#   list(
-#     si_parametric_distr = "G",
-#     mean_si = wtSIs$mean_si,
-#     std_mean_si = wtSIs$std_mean_si,
-#     min_mean_si = wtSIs$min_mean_si,
-#     max_mean_si = wtSIs$max_mean_si,
-#     std_si = wtSIs$std_si,
-#     std_std_si = wtSIs$std_si,
-#     min_std_si = wtSIs$min_std_si,
-#     max_std_si = wtSIs$max_std_si
-#   ),
-#   method = "uncertain_si"
-# )
-
-
 
 #---trainingTestingDataFrames---#########################################################################################################################################################################
 # Subset training country list to those countries that had enough cases (to calc R0) by the start point
@@ -388,6 +237,7 @@ for (i in 1:length(training_countries)) {
   training_subset_aligned$confirmed <- as.numeric(training_subset_aligned$confirmed)
   training_subset_aligned$movingAverage <- as.numeric(training_subset_aligned$movingAverage)
   training_subset_aligned$derived_I_curve <- as.numeric(training_subset_aligned$derived_I_curve)
+  plottingDF$derived_I_curve <- NULL
   melt_plottingDF <- melt(plottingDF, id="date")
   melt_plottingDF$date <- as.Date(melt_plottingDF$date)
   # Plot cases
@@ -445,7 +295,8 @@ for (i in 1:length(training_countries)) {
       panel.background = element_blank(),
       axis.line = element_line(colour = "black")
     ) +
-    scale_color_manual(values = c("orange", "tomato3","purple"), breaks = c("confirmed", "movingAverage", "derived_I_curve"), labels = c("New Daily Cases", "Smoothed Moving Average", "Currently Infected"), name=NULL)
+    scale_color_manual(values = c("orange", "tomato3"), breaks = c("confirmed", "movingAverage"), labels = c("New Daily Cases", "Smoothed Moving Average"), name=NULL)
+    # scale_color_manual(values = c("orange", "tomato3","purple"), breaks = c("confirmed", "movingAverage", "derived_I_curve"), labels = c("New Daily Cases", "Smoothed Moving Average", "Currently Infected"), name=NULL)
   print(gg)
   # Add moving average day lag and one day difference variables
   training_subset_aligned[["movingAverage_lag_1"]] <-
@@ -472,43 +323,9 @@ for (i in 1:length(training_countries)) {
   toCalcR0 <-
     training_subset_aligned[, c("date", "movingAverage")]
   colnames(toCalcR0) <- c("dates", "I")
-  # toCalcR0$I[toCalcR0$I < 0] <- NA
-  # #Get of erroneous negative counts... they sneak throught the API sometimes.
-  # # But if thre is a negative at teh end... are the last one lets just make it equal to the n-1 one
-  # if (is.na(tail(toCalcR0$I, 1))) {
-  #   toCalcR0$I[length(toCalcR0$I)] <- toCalcR0$I[length(toCalcR0$I) - 1]
-  # }
-  # # If the NA is not at the end, Lets linearly interpolate them:
-  # toCalcR0$I <- na.approx(toCalcR0$I)
-  # toCalcR0$I <- as.integer(toCalcR0$I)
-  
-  # res_uncertain_si <- estimate_R(toCalcR0,
-  #                                method = "uncertain_si",
-  #                                config = config)
-  # save(res_uncertain_si,
-  #      file = paste0("./InputData/", training_countries[i], "_WT_R0.Rdata"))
-  
+
   if (RunWT_R_flag == T) {
-    # res_uncertain_si <-
-    #   wallinga_teunis(
-    #     toCalcR0,
-    #     method = "parametric_si",
-    #     config = list(
-    #       si_parametric_distr = "G",
-    #       t_start = seq(1, nrow(toCalcR0) -
-    #                       6),
-    #       t_end = seq(7, nrow(toCalcR0)),
-    #       mean_si = wtSIs$mean_si,
-    #       std_mean_si = wtSIs$std_mean_si,
-    #       min_mean_si = wtSIs$min_mean_si,
-    #       max_mean_si = wtSIs$max_mean_si,
-    #       std_si = wtSIs$std_si,
-    #       std_std_si = wtSIs$std_si,
-    #       min_std_si = wtSIs$min_std_si,
-    #       max_std_si = wtSIs$max_std_si,
-    #       n_sim = 100
-    #     )
-    #   )
+
     incid <- as.numeric(toCalcR0$I)
     names(incid) <- as.Date(toCalcR0$dates)
     empez <- as.Date(toCalcR0$dates[1])
@@ -548,25 +365,6 @@ for (i in 1:length(training_countries)) {
   finalR_WT$date <- as.Date(finalR_WT$date)
   training_subset_aligned <- merge(training_subset_aligned, finalR_WT, by="date", all.x = T, all.y = F)
   training_subset_aligned[,c("date","R0")]
-  
-  
-  
-  # training_subset_aligned$R0 <- NA
-  # training_subset_aligned$R0[head(res_uncertain_si[["R"]]$`t_start`, 1):(tail(res_uncertain_si[["R"]]$`t_start`, 1))] <-
-  #   res_uncertain_si[["R"]]$`Mean(R)`
-  # # Autofill beginning R0s with first value
-  # training_subset_aligned$R0[1:head(res_uncertain_si[["R"]]$`t_start`, 1)] <-
-  #   mean(head(res_uncertain_si[["R"]]$`Mean(R)`, 1))
-  # # Autofill ending R0s with linear estimation from last week of values
-  # fitFrame <-
-  #   as.data.frame(cbind(c(1:7), tail(res_uncertain_si[["R"]]$`Mean(R)`, 7)))
-  # fit <- lm(V2 ~ V1, data = fitFrame)
-  # fitPred <-
-  #   as.data.frame(8:(8 + length((tail(res_uncertain_si[["R"]]$`t_start`, 1)):nrow(training_subset_aligned)
-  #   )))
-  # colnames(fitPred) <- c("V1")
-  # training_subset_aligned$R0[(tail(res_uncertain_si[["R"]]$`t_start`, 1)):nrow(training_subset_aligned)] <-
-  #   NA #predict.lm(fit,fitPred) #mean(tail(res_uncertain_si[["R"]]$`Mean(R)`,5))
   listToLag <-
     c(
       "R0"
@@ -605,47 +403,6 @@ for (i in 1:length(training_countries)) {
     training_subset_aligned[[paste0(listToLag[npi], "_lag_14")]][1:14] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
   }
-  # Fix lags for non-updated NPIs
-  # training_subset_aligned$Social_Distancing[is.na(training_subset_aligned$Social_Distancing)] <-
-  #   tail(training_subset_aligned$Social_Distancing[!is.na(training_subset_aligned$Social_Distancing)], 1)
-  # training_subset_aligned$Quaranting_Cases[is.na(training_subset_aligned$Quaranting_Cases)] <-
-  #   tail(training_subset_aligned$Quaranting_Cases[!is.na(training_subset_aligned$Quaranting_Cases)], 1)
-  # training_subset_aligned$Close_Border[is.na(training_subset_aligned$Close_Border)] <-
-  #   tail(training_subset_aligned$Close_Border[!is.na(training_subset_aligned$Close_Border)], 1)
-  # listToLag <-
-  #   c("Social_Distancing", "Quaranting_Cases", "Close_Border")
-  # for (npi in 1:length(listToLag)) {
-  #   # Add 3 day lag factor
-  #   training_subset_aligned[[paste0(listToLag[npi], "_Lag_03")]] <-
-  #     lag(training_subset_aligned[[paste0(listToLag[npi])]], 3)
-  #   training_subset_aligned[[paste0(listToLag[npi], "_Lag_03")]][1:3] <-
-  #     mean(training_subset_aligned[[paste0(listToLag[npi])]][1:1])
-  #   # Add 7 day lag factor
-  #   training_subset_aligned[[paste0(listToLag[npi], "_Lag_07")]] <-
-  #     lag(training_subset_aligned[[paste0(listToLag[npi])]], 7)
-  #   training_subset_aligned[[paste0(listToLag[npi], "_Lag_07")]][1:7] <-
-  #     mean(training_subset_aligned[[paste0(listToLag[npi])]][1:1])
-  #   # Add 10 day lag factor
-  #   training_subset_aligned[[paste0(listToLag[npi], "_lag_10")]] <-
-  #     lag(training_subset_aligned[[paste0(listToLag[npi])]], 10)
-  #   training_subset_aligned[[paste0(listToLag[npi], "_lag_10")]][1:10] <-
-  #     mean(training_subset_aligned[[paste0(listToLag[npi])]][1:1])
-  #   # Add 14 day lag factor
-  #   training_subset_aligned[[paste0(listToLag[npi], "_lag_14")]] <-
-  #     lag(training_subset_aligned[[paste0(listToLag[npi])]], 14)
-  #   training_subset_aligned[[paste0(listToLag[npi], "_lag_14")]][1:14] <-
-  #     mean(training_subset_aligned[[paste0(listToLag[npi])]][1:1])
-  # }
-  
-  
-  # plot.new()
-  # plot(res_uncertain_si, legend = T)
-  # mtext(
-  #   training_countries[i],
-  #   outer = TRUE,
-  #   cex = 1,
-  #   line = -.5
-  # )
   
   if (i == 1) {
     training_ready <- training_subset_aligned
@@ -660,47 +417,10 @@ dev.off()
 
 # preserve the original dataframes before we make changes to them...
 training_ready_OG <- training_ready
-# Let's use some of the country's data for training based on testingTimeFrame
-# NrowToSaveForTesting <-
-#   round(nrow(testing_ready_OG) * testingTimeFrame)
-# breakpoint <- nrow(testing_ready_OG) - NrowToSaveForTesting
-# testing_ready <-
-#   testing_ready_OG[(breakpoint + 1):nrow(testing_ready_OG),]
-# training_ready <-
-#   as.data.frame(rbind(training_ready_OG, training_ready_OG[1:breakpoint,]))
-
-
-#---NPIflag1---#########################################################################################################################################################################
-# Here we write a little loop that takes care of the fact that the Johns hopkins count data is
-# Updated much more frequently than the NPI data.  So
-# setting the NPIflag1 to "autofill" is our method of saying that we want to fill all the NAs in the time period with the last empirical time points' NPI values
-# We will worry about the NPIflag2 later to specify if we want to fill the projection timeperiod the same way
-# NPIflag1 <- "autofill"
-
-# peek_at_NPIs_training1 <-
-#   training_ready[, c(c("date", "time", "Country.x", "ISO3", "confirmed"),
-#                      names(training_ready)[grep(
-#                        "Social_Distancing|Quaranting_Cases|Close_Border|Google|R0",
-#                        names(training_ready)
-#                      )])]
-# breaker <- nrow(testing_ready)-forecastingTime+1-addToBreaker #breaker for R0
-# breaker2 <- nrow(testing_ready)-forecastingTime+1 #breaker for all of the NPIs for our cutoff date
-# peek_at_NPIs_testing1 <-
-#   testing_ready[, c(c("date", "time", "Country.x", "ISO3", "confirmed"),
-#                     names(testing_ready)[grep(
-#                       "Social_Distancing|Quaranting_Cases|Close_Border|Google|R0",
-#                       names(testing_ready)
-#                     )])]
-# tail(peek_at_NPIs_testing1[1:breaker])
-#---Filtering Columns in Dataframes---#########################################################################################################################################################################
-# Columns you don't want to be in the model
-# library(tidyverse)
-# training_ready <- as_tibble(training_ready)
 
 # filter training data
 training_ready_sub_tmp <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
-  dplyr::select(-contains("derived_I_curve")) %>%
   dplyr::select(-contains("death_cum")) %>%
   dplyr::select(-contains("movingAverage")) %>%
   dplyr::select(-contains("MalePercent")) %>%
@@ -756,8 +476,6 @@ for(name in excludedCountries){
   print(colnames(checkNA)[which(checkNA[1,]>=(.8*nrow(check)))])
   print("..............")
 }
-
-
 
 training_ready_sub2 <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
@@ -866,70 +584,6 @@ if (VSURFflag == T) {
     length(colnames(training_ready_sub2[, results.vsurf$varselect.interp]))
   nVarPred <-
     length(colnames(training_ready_sub2[, results.vsurf$varselect.pred]))
-  
-  # # If the selection process between interpretation step and prediction step essentially eliminated all of the variables,
-  # # lets lower the nmj threshold (since there is no natural tuning of this parameter)
-  # if (nVarInterp <= 4) {
-  #   print(
-  #     "we have less than 4 variables in the interpretation set, so lets predict on all the variables from the interpretation step..."
-  #   )
-  #   results.vsurf$varselect.pred <-
-  #     results.vsurf$varselect.interp
-  # } else{
-  #   if (nVarPred <= 4 && nVarInterp > 4) {
-  #     print("nmj = 1 gave me less than 4 variables to predict on, lets try nmj = 0.1 ...")
-  #     results.vsurf_pred_redo <- VSURF_pred(
-  #       x,
-  #       y,
-  #       na.action = na.omit,
-  #       mtry = mtry_best,
-  #       n_tree = number_trees,
-  #       parallel = TRUE,
-  #       verbose = TRUE,
-  #       ncores = num_cores,
-  #       nmj = 0.1,
-  #       err.interp = results.vsurf$err.interp,
-  #       varselect.interp = results.vsurf$varselect.interp
-  #     )
-  #     results.vsurf$varselect.pred <-
-  #       results.vsurf_pred_redo$varselect.pred
-  #     nVarPred <-
-  #       length(colnames(training_ready_sub2[, results.vsurf$varselect.pred]))
-  #     nmj_used = 0.1
-  #   }
-  #   # If we still have less than 4 variables lets lower nmj again
-  #   if (nVarPred <= 4 && nVarInterp > 4) {
-  #     print("nmj = 0.1 gave me less than 4 variables to predict on, lets try nmj = 0.01 ...")
-  #     results.vsurf_pred_redo <- VSURF_pred(
-  #       x,
-  #       y,
-  #       na.action = na.omit,
-  #       mtry = mtry_best,
-  #       n_tree = number_trees,
-  #       parallel = TRUE,
-  #       verbose = TRUE,
-  #       ncores = num_cores,
-  #       nmj = 0.01,
-  #       err.interp = results.vsurf$err.interp,
-  #       varselect.interp = results.vsurf$varselect.interp
-  #     )
-  #     results.vsurf$varselect.pred <-
-  #       results.vsurf_pred_redo$varselect.pred
-  #     nVarPred <-
-  #       length(colnames(training_ready_sub2[, results.vsurf$varselect.pred]))
-  #     nmj_used = 0.01
-  #   }
-  #   # If we still have less than 4 variables in the predict set, lets just use the interpretation variable set for the prediction model
-  #   if (nVarPred <= 4 && nVarInterp > 4) {
-  #     print("this shouldnt happen very often....")
-  #     print(
-  #       "nmj = 0.01 gave me less than 4 variables to predict on, so lets stop trying to adjust nmj and just predict on all the variables from the interpretation step"
-  #     )
-  #     results.vsurf$varselect.pred <-
-  #       results.vsurf$varselect.interp
-  #     nmj_used = 0
-  #   }
-  # }
   
   # look at results of VSURF
   summary(results.vsurf)
@@ -1047,6 +701,7 @@ library(sjPlot)
 library(sjlabelled)
 library(sjmisc)
 library(ggplot2)
+# exploring a linear model too...
 # myLm <- lm(formula = mod_formula, data = training_ready_sub2[complete.cases(training_ready_sub2), ])
 # myLmAIC <- stepAIC(myLm)
 # # plot_summs(myLmAIC)

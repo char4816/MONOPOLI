@@ -1,10 +1,9 @@
 # Collecting virus-related data
 
-# Written by:  Jay H Arehart
+# Written by:  Jay H Arehart and Chris H Arehart
 # Written on: March 20th, 2020
+# Updated on: June 20th, 2020
 
-# Install package for daily update of data:
-# devtools::install_github("RamiKrispin/coronavirus")
 
 # TRUE if you want to scale by population
 incidence_flag <- T
@@ -27,21 +26,12 @@ library(zoo)
 
 
 # Update data?
-update_dataset()
+update_dataset(T)
 
 # Explore the data
 data("coronavirus")
 head(coronavirus)
 max(coronavirus$date)
-
-# I am overwriting coronavrius object with whats in the csv becaue the data file isn't being updated/it's corrupt...
-# download.file("https://github.com/RamiKrispin/coronavirus/blob/master/csv/coronavirus.csv?raw=true","./InputData/coronavirus.csv")
-# coronavirus <- read.csv("./InputData/coronavirus.csv", header=T, stringsAsFactors = F)
-# head(coronavirus)
-# coronavirus <- coronavirus[,c("province","country","lat","long","date","cases","type")]
-# colnames(coronavirus) <- c("province", "country", "lat", "long",  "date", "cases", "type")
-# head(coronavirus)
-# max(coronavirus$date)
 
 # Load in csv files
 country_codes <- read.csv('./InputData/CountryCodes.csv')
@@ -52,11 +42,8 @@ population <- read_excel("./InputData/pop.xlsx", sheet = "pop_1000s", col_names 
 population_countrycodes <- merge(country_codes,population, by='ISO3')
 population_countrycodes <- population_countrycodes %>%
   mutate(Country = Country.x) %>%
-  select(-Country.x,-Country.y,-PopTotal_1000s)
+  dplyr::select(-Country.x,-Country.y,-PopTotal_1000s)
 glimpse(population_countrycodes)
-# # Remove Kosavo
-# population_countrycodes <- subset(population_countrycodes,ISO3 != "RKS")
-# coronavirus <- subset(population_countrycodes,ISO3 != "RKS")
 
 # Add ISO country codes to project
 raw_data = tbl_df(merge(coronavirus, population_countrycodes, by.x='country', by.y='Country'))
@@ -181,7 +168,7 @@ create_COVID_ML_df <- function(coronavirus, num_cases_min = 4000, num_lag=10, in
     df.ts.lag$Country <- countries_training$country[i]
     df_ts_lag_train <- rbind(df_ts_lag_train,df.ts.lag)
   }
-  df_ts_lag_train <- select(df_ts_lag_train, date, Country, ISO3, everything())
+  df_ts_lag_train <- dplyr::select(df_ts_lag_train, date, Country, ISO3, everything())
   print(paste0("Total number of countries included in analysis are: ", n_distinct(df_ts_lag_train$Country)))
   # print(paste0("Countries time histories included are: ", distinct(df_ts_lag_train, Country)))
   print(unique(df_ts_lag_train$Country))
@@ -199,16 +186,6 @@ country_ts_lag <- create_lag(country_ts, num=10, incidence = incidence_flag)
 ## Creaint the full dataframe and saving the .csv file -----
 
 output_df <- create_COVID_ML_df(coronavirus, num_cases_min = 1000, num_lag = 14, incidence_flag = incidence_flag)   # to change from cases per million to total cases, change default value in function defined above (country_timeseries)
-
-# if(HubeiFlag == T){
-#   output_df$Country <- as.character(output_df$Country)
-#   output_df$Country[output_df$Country == "China"] <- "Hubei"
-#   output_df$ISO3 <- as.character(output_df$ISO3)
-#   output_df$ISO3[output_df$ISO3 == "CHN"] <- "HUB"
-#   
-# }
-
-
 
 write.csv(output_df, file="InputData/data_COVID_2020_04_02.csv")
 

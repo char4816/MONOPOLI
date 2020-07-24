@@ -1,3 +1,9 @@
+# Wrangling the demographics and socioeconomics data
+
+# Written by:  Chris H Arehart
+# Written on: March 24th, 2020
+# Updated on: June 20th, 2020
+
 library(tidyverse)
 library(readxl)
 library(reshape2)
