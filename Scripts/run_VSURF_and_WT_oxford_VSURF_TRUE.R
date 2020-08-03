@@ -199,7 +199,7 @@ for (i in 1:length(training_countries)) {
   # Smooth out incidence using moving average with a centered window of 7 datapoints (3 to the left, 3 to the right)
   # make sure the window is an odd integer
   recoveryTime = 14.5
-  window <- 11
+  window <- 7
   # dim(training_subset_aligned)
   # length(rollmean(training_subset_aligned$confirmed, k=window))
   pre <- c()
@@ -387,21 +387,52 @@ for (i in 1:length(training_countries)) {
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 5)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_5")]][1:5] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 6 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_6")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 6)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_6")]][1:6] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 7 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_7")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 7)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_7")]][1:7] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
     # Add 8 day lag factor for R0
     training_subset_aligned[[paste0(listToLag[npi], "_lag_8")]] <-
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 8)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_8")]][1:8] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 9 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_9")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 9)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_9")]][1:9] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 10 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_10")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 10)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_10")]][1:10] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
     # Add 11 day lag factor for R0
     training_subset_aligned[[paste0(listToLag[npi], "_lag_11")]] <-
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 11)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_11")]][1:11] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 12 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_12")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 12)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_12")]][1:12] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 13 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_13")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 13)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_13")]][1:13] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
     # Add 14 day lag factor for R0
     training_subset_aligned[[paste0(listToLag[npi], "_lag_14")]] <-
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 14)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_14")]][1:14] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    
   }
   
   if (i == 1) {
@@ -421,6 +452,7 @@ training_ready_OG <- training_ready
 # filter training data
 training_ready_sub_tmp <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
+  dplyr::select(-contains("derived_I_curve")) %>%
   dplyr::select(-contains("death_cum")) %>%
   dplyr::select(-contains("movingAverage")) %>%
   dplyr::select(-contains("MalePercent")) %>%

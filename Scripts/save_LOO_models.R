@@ -177,7 +177,7 @@ for (cc in 1:length(testing_countriesList)) {
       
       # Smooth out incidence using moving average with a centered window of 7 datapoints (3 to the left, 3 to the right)
       # make sure the window is an odd integer
-      window <- 11
+      window <- 7
       # dim(training_subset_aligned)
       # length(rollmean(training_subset_aligned$confirmed, k=window))
       pre <- c()
@@ -347,7 +347,7 @@ for (cc in 1:length(testing_countriesList)) {
       
       # Smooth out incidence using moving average with a centered window of 7 datapoints (3 to the left, 3 to the right)
       # make sure the window is an odd integer
-      window <- 11
+      window <- 7
       # dim(testing_subset_aligned)
       # length(rollmean(testing_subset_aligned$confirmed, k=window))
       pre <- c()

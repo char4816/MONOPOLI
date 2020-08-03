@@ -1,4 +1,4 @@
-# Continue with updated data but without re-running VSURF (use old saved run of VSURF)
+# Run VSURF and plot variable importance
 
 # Written by:  Chris H Arehart
 # Written on: March 24th, 2020
@@ -199,7 +199,7 @@ for (i in 1:length(training_countries)) {
   # Smooth out incidence using moving average with a centered window of 7 datapoints (3 to the left, 3 to the right)
   # make sure the window is an odd integer
   recoveryTime = 14.5
-  window <- 11
+  window <- 7
   # dim(training_subset_aligned)
   # length(rollmean(training_subset_aligned$confirmed, k=window))
   pre <- c()
@@ -296,7 +296,7 @@ for (i in 1:length(training_countries)) {
       axis.line = element_line(colour = "black")
     ) +
     scale_color_manual(values = c("orange", "tomato3"), breaks = c("confirmed", "movingAverage"), labels = c("New Daily Cases", "Smoothed Moving Average"), name=NULL)
-    # scale_color_manual(values = c("orange", "tomato3","purple"), breaks = c("confirmed", "movingAverage", "derived_I_curve"), labels = c("New Daily Cases", "Smoothed Moving Average", "Currently Infected"), name=NULL)
+  # scale_color_manual(values = c("orange", "tomato3","purple"), breaks = c("confirmed", "movingAverage", "derived_I_curve"), labels = c("New Daily Cases", "Smoothed Moving Average", "Currently Infected"), name=NULL)
   print(gg)
   # Add moving average day lag and one day difference variables
   training_subset_aligned[["movingAverage_lag_1"]] <-
@@ -323,9 +323,9 @@ for (i in 1:length(training_countries)) {
   toCalcR0 <-
     training_subset_aligned[, c("date", "movingAverage")]
   colnames(toCalcR0) <- c("dates", "I")
-
+  
   if (RunWT_R_flag == T) {
-
+    
     incid <- as.numeric(toCalcR0$I)
     names(incid) <- as.Date(toCalcR0$dates)
     empez <- as.Date(toCalcR0$dates[1])
@@ -387,21 +387,52 @@ for (i in 1:length(training_countries)) {
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 5)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_5")]][1:5] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 6 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_6")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 6)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_6")]][1:6] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 7 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_7")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 7)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_7")]][1:7] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
     # Add 8 day lag factor for R0
     training_subset_aligned[[paste0(listToLag[npi], "_lag_8")]] <-
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 8)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_8")]][1:8] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 9 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_9")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 9)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_9")]][1:9] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 10 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_10")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 10)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_10")]][1:10] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
     # Add 11 day lag factor for R0
     training_subset_aligned[[paste0(listToLag[npi], "_lag_11")]] <-
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 11)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_11")]][1:11] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 12 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_12")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 12)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_12")]][1:12] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    # Add 13 day lag factor for R0
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_13")]] <-
+      lag(training_subset_aligned[[paste0(listToLag[npi])]], 13)
+    training_subset_aligned[[paste0(listToLag[npi], "_lag_13")]][1:13] <-
+      mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
     # Add 14 day lag factor for R0
     training_subset_aligned[[paste0(listToLag[npi], "_lag_14")]] <-
       lag(training_subset_aligned[[paste0(listToLag[npi])]], 14)
     training_subset_aligned[[paste0(listToLag[npi], "_lag_14")]][1:14] <-
       mean(training_subset_aligned[[paste0(listToLag[npi])]][1:3])
+    
   }
   
   if (i == 1) {
@@ -410,7 +441,7 @@ for (i in 1:length(training_countries)) {
     training_ready <-
       as.data.frame(rbind(training_ready, training_subset_aligned))
   }
-
+  
 }
 
 dev.off()
@@ -421,6 +452,7 @@ training_ready_OG <- training_ready
 # filter training data
 training_ready_sub_tmp <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
+  dplyr::select(-contains("derived_I_curve")) %>%
   dplyr::select(-contains("death_cum")) %>%
   dplyr::select(-contains("movingAverage")) %>%
   dplyr::select(-contains("MalePercent")) %>%
@@ -514,9 +546,9 @@ training_ready_sub2 <- training_ready %>%
       R0_lag_2
     )
   ) %>%
-mutate_if(is.factor, as.character) %>%
-mutate_if(is.character, as.numeric) %>%
-mutate_if(is.integer, as.numeric)
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric) %>%
+  mutate_if(is.integer, as.numeric)
 
 #---VSURF Variable Selection---#########################################################################################################################################################################
 outcomeVariable <- "R0"
@@ -604,14 +636,14 @@ if (VSURFflag == T) {
     colnames(training_ready_sub2[, results.vsurf$varselect.pred])
   # Save the final list from D4 to be used for D3, D2, and D1
   # save(nmj_used, VSURF_thres_keepers, VSURF_interp_keepers, VSURF_pred_keepers, results.vsurf, results.vsurf.OG, file = paste0("./InputData/",testing_country,"_VSURFkeepers_R0.Rdata"))
-
+  
   
   
 }else{
   # load("./InputData/tmpChris_All_Countries_VSURFkeepers_R0_oxford.Rdata")
   load(paste0("./InputData/",
-         "All_Countries",
-         "_VSURFkeepers_R0_oxford.Rdata"))
+              "All_Countries",
+              "_VSURFkeepers_R0_oxford.Rdata"))
 }
 
 #---RF model---#########################################################################################################################################################################
@@ -628,21 +660,21 @@ registerDoParallel(num_cores)
 
 if (length(VSURF_pred_keepers) > 1) {
   training_ready_sub_vsurf_result = dplyr::select(training_ready_sub2,
-                                           c(outcomeVariable, VSURF_pred_keepers))
+                                                  c(outcomeVariable, VSURF_pred_keepers))
   training_ready_sub_vsurf_result_varImp = dplyr::select(training_ready_sub2,
-                                                  c(outcomeVariable, VSURF_interp_keepers))
+                                                         c(outcomeVariable, VSURF_interp_keepers))
 } else if (length(VSURF_pred_keepers) <= 1 &&
            length(VSURF_interp_keepers) > 1) {
   training_ready_sub_vsurf_result = dplyr::select(training_ready_sub2,
-                                           c(outcomeVariable, VSURF_interp_keepers))
-  training_ready_sub_vsurf_result_varImp = dplyr::select(training_ready_sub2,
                                                   c(outcomeVariable, VSURF_interp_keepers))
+  training_ready_sub_vsurf_result_varImp = dplyr::select(training_ready_sub2,
+                                                         c(outcomeVariable, VSURF_interp_keepers))
 } else if (length(VSURF_pred_keepers) <= 1 &&
            length(VSURF_interp_keepers) <= 1) {
   training_ready_sub_vsurf_result = dplyr::select(training_ready_sub2,
-                                           c(outcomeVariable, VSURF_thres_keepers))
-  training_ready_sub_vsurf_result_varImp = dplyr::select(training_ready_sub2,
                                                   c(outcomeVariable, VSURF_thres_keepers))
+  training_ready_sub_vsurf_result_varImp = dplyr::select(training_ready_sub2,
+                                                         c(outcomeVariable, VSURF_thres_keepers))
 }
 glimpse(training_ready_sub_vsurf_result)
 glimpse(training_ready_sub_vsurf_result_varImp)

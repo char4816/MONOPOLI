@@ -207,7 +207,7 @@ if(downloadFlag == T){
 }
 GoogData <- read.csv("./InputData/Global_Mobility_Report.csv", header=T)
 # Get just the overall country mobility stats
-GoogData_sub <- subset(GoogData, sub_region_1 == "" & sub_region_2 == "")
+GoogData_sub <- subset(GoogData, sub_region_1 == "" & sub_region_2 == "" & metro_area == "")
 GoogData_sub$country_region <- as.character(GoogData_sub$country_region)
 unique(data_features$Country[which(data_features$Country %ni% GoogData_sub$country_region)])
 GoogData_sub$country_region[GoogData_sub$country_region=="United States"] <- "US"
@@ -232,7 +232,9 @@ colnames(GoogData_sub2) <- c("country_region","date","Google_Retail_recreation",
 countryList <- unique(GoogData_sub2$country_region)
 for(i in 1:length(countryList)){
   tsub <- subset(GoogData_sub2, country_region == countryList[i])
-  for(j in c(2,5,8,11,14)){
+  # for(j in c(2,5,8,11,14)){
+  for(j in c(1:14)){
+      
 
     tsub[[paste0("Google_Retail_recreation","_lag_",j)]] <- lag(tsub$Google_Retail_recreation,j)
     tsub[[paste0("Google_Retail_recreation", "_lag_",j)]][1:j] <-
@@ -355,7 +357,8 @@ names(OxData)
 countryList <- unique(OxData$CountryCode)
 for(i in 1:length(countryList)){
   tsub <- subset(OxData, CountryCode == countryList[i])
-  for(j in c(2,5,8,11,14)){
+  # for(j in c(2,5,8,11,14)){
+  for(j in c(1:14)){
     # tsub[[paste0("C1_School.closing","_lag_",j)]] <- lag(tsub$C1_School.closing,j)
     # tsub[[paste0("C2_Workplace.closing","_lag_",j)]] <- lag(tsub$C2_Workplace.closing,j)
     # tsub[[paste0("C3_Cancel.public.events","_lag_",j)]] <- lag(tsub$C3_Cancel.public.events,j)
@@ -585,10 +588,15 @@ data_features4[which(data_features4$Country == "Mozambique"),c("EFindex")] <- 0.
 # https://tradingeconomics.com/namibia/physicians-per-1-000-people-wb-data.html
 data_features4[which(data_features4$Country == "Namibia"),c("PhysicianDensity")] <- 0.4182
 
+# https://tobaccoatlas.org/country/Angola/
+data_features4[which(data_features4$Country == "Angola"),c("PopulationSmoking_male")] <- 14.2
+data_features4[which(data_features4$Country == "Angola"),c("PopulationSmoking_female")] <- 1.6
+
 # These countries seem to currently have a bug in their google mobility data, and for now need to be removed
 data_features4 <- subset(data_features4, Country!= "Afghanistan")
 data_features4 <- subset(data_features4, Country!= "Serbia")
 data_features4 <- subset(data_features4, Country!= "Georgia")
+# data_features4 <- subset(data_features4, Country!= "Russia")
 
 write.csv(data_features4, "./InputData/ML_features_oxford.csv", row.names = F)
 
