@@ -511,6 +511,7 @@ for(name in excludedCountries){
 
 training_ready_sub2 <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
+  dplyr::select(-contains("derived_I_curve")) %>%
   dplyr::select(-contains("death_cum")) %>%
   dplyr::select(-contains("movingAverage")) %>%
   dplyr::select(-contains("MalePercent")) %>%
@@ -598,42 +599,106 @@ if (VSURFflag == T) {
   mtry_best <- max(floor(ncol(x) / 3), 1)
   
   # Run VSURF to get the top variables
-  results.vsurf <- VSURF(
+  # rowsies <- as.integer(runif(800,min=1,max=nrow(x)))
+  # x <- x[rowsies,c("ContainmentHealthIndexForDisplay_lag_11","R0_lag_5","R0_lag_5","R0_lag_6","R0_lag_7","R0_lag_8","R0_lag_9","EFindex","StringencyIndexForDisplay_lag_8")]
+  # y <- y[rowsies]
+  # print(head(x))
+  # print(head(y))
+  # THRESHOLDING
+  results.vsurf_thresh <- VSURF_thres(
     x,
     y,
     na.action = na.omit,
     mtry = mtry_best,
-    n_tree = number_trees,
+    ntree = number_trees,
     parallel = TRUE,
     verbose = TRUE,
     ncores = num_cores,
+    # nmj = 1,
+    nfor.thres = 20
+  )
+  save.image(
+    file = paste0("./InputData/",
+                  "thresh_save",
+                  "_VSURFkeepers.Rdata")
+  )
+  # INTERPRETATION
+  results.vsurf_interp <- VSURF_interp(
+    x,
+    y,
+    na.action = na.omit,
+    vars =  results.vsurf_thresh$varselect.thres,
+    ntree = number_trees,
+    parallel = TRUE,
+    verbose = TRUE,
+    ncores = num_cores,
+    nfor.interp = 10,
     nmj = 1
   )
+  save.image(
+    file = paste0("./InputData/",
+                  "interp_save",
+                  "_VSURFkeepers.Rdata")
+  )
+  # PREDICTION
+  results.vsurf_pred <- VSURF_pred(
+    x,
+    y,
+    na.action = na.omit,
+    err.interp = results.vsurf_interp$err.interp,
+    varselect.interp = results.vsurf_interp$varselect.interp,
+    ntree = number_trees,
+    parallel = TRUE,
+    verbose = TRUE,
+    ncores = num_cores,
+    nfor.pred = 10,
+    nmj = 1
+  )
+  save.image(
+    file = paste0("./InputData/",
+                  "pred_save",
+                  "_VSURFkeepers.Rdata")
+  )
+  
+  results.vsurf <- results.vsurf_pred
+  # results.vsurf <- VSURF(
+  #   x,
+  #   y,
+  #   na.action = na.omit,
+  #   mtry = mtry_best,
+  #   n_tree = number_trees,
+  #   parallel = TRUE,
+  #   verbose = TRUE,
+  #   ncores = num_cores,
+  #   nmj = 1
+  # )
   nmj_used = 1
   results.vsurf.OG <- results.vsurf
   
   nVarInterp <-
-    length(colnames(training_ready_sub2[, results.vsurf$varselect.interp]))
+    length(colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp]))
   nVarPred <-
-    length(colnames(training_ready_sub2[, results.vsurf$varselect.pred]))
+    length(colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred]))
   
   # look at results of VSURF
   summary(results.vsurf)
-  plot(results.vsurf)
-  results.vsurf$varselect.thres
-  results.vsurf$varselect.interp
-  results.vsurf$varselect.pred
+  plot(results.vsurf_thresh)
+  plot(results.vsurf_interp)
+  plot(results.vsurf_pred)
+  results.vsurf_thresh$varselect.thres
+  results.vsurf_interp$varselect.interp
+  results.vsurf_pred$varselect.pred
   
   # print the reduced number of variables that should be considered in model
-  colnames(training_ready_sub2[, results.vsurf$varselect.thres])
-  colnames(training_ready_sub2[, results.vsurf$varselect.interp])
-  colnames(training_ready_sub2[, results.vsurf$varselect.pred])    # The final list of variables to be included according to the VSURF methodology.
+  colnames(training_ready_sub2[, results.vsurf_thresh$varselect.thres])
+  colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp])
+  colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred])    # The final list of variables to be included according to the VSURF methodology.
   VSURF_thres_keepers <-
-    colnames(training_ready_sub2[, results.vsurf$varselect.thres])
+    colnames(training_ready_sub2[, results.vsurf_thresh$varselect.thres])
   VSURF_interp_keepers <-
-    colnames(training_ready_sub2[, results.vsurf$varselect.interp])
+    colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp])
   VSURF_pred_keepers <-
-    colnames(training_ready_sub2[, results.vsurf$varselect.pred])
+    colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred])
   # Save the final list from D4 to be used for D3, D2, and D1
   # save(nmj_used, VSURF_thres_keepers, VSURF_interp_keepers, VSURF_pred_keepers, results.vsurf, results.vsurf.OG, file = paste0("./InputData/",testing_country,"_VSURFkeepers_R0.Rdata"))
   
@@ -943,6 +1008,9 @@ save(
   VSURF_pred_keepers,
   results.vsurf,
   results.vsurf.OG,
+  results.vsurf_thresh,
+  results.vsurf_interp,
+  results.vsurf_pred,
   plot_varimp,
   plot_varimp_R,
   plot_varimp_nonR,
