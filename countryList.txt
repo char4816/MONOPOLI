@@ -1,0 +1,156 @@
+India
+France
+Brazil
+Germany
+United Kingdom
+Italy
+Japan
+Russia
+Turkey
+Spain
+Vietnam
+Australia
+Argentina
+Mexico
+Indonesia
+Poland
+Colombia
+Portugal
+Ukraine
+Austria
+Greece
+Malaysia
+Thailand
+Israel
+Chile
+Belgium
+Canada
+Peru
+Switzerland
+Czechia
+South Africa
+Philippines
+Denmark
+Romania
+Slovakia
+Sweden
+Iraq
+Hungary
+Bangladesh
+Singapore
+New Zealand
+Jordan
+Ireland
+Pakistan
+Kazakhstan
+Norway
+Finland
+Morocco
+Bulgaria
+Lithuania
+Croatia
+Lebanon
+Slovenia
+Guatemala
+Costa Rica
+United Arab Emirates
+Ecuador
+Nepal
+Panama
+Uruguay
+Mongolia
+Latvia
+Saudi Arabia
+Paraguay
+Sri Lanka
+Dominican Republic
+Estonia
+Moldova
+Egypt
+Honduras
+Qatar
+Bosnia and Herzegovina
+Kenya
+Zambia
+Botswana
+Luxembourg
+Nigeria
+Mauritius
+Zimbabwe
+Mozambique
+Kyrgyzstan
+El Salvador
+Trinidad and Tobago
+Ghana
+Uganda
+Namibia
+Jamaica
+Cambodia
+Rwanda
+Cameroon
+Malta
+Angola
+Senegal
+Gabon
+Papua New Guinea
+Tanzania
+Togo
+Haiti
+Mali
+Benin
+Burkina Faso
+Tajikistan
+Nicaragua
+Yemen
+Niger
+USA Alaska
+USA Alabama
+USA Arkansas
+USA Arizona
+USA California
+USA Colorado
+USA Connecticut
+USA District of Columbia
+USA Delaware
+USA Florida
+USA Georgia
+USA Hawaii
+USA Iowa
+USA Idaho
+USA Illinois
+USA Indiana
+USA Kansas
+USA Kentucky
+USA Louisiana
+USA Massachusetts
+USA Maryland
+USA Maine
+USA Michigan
+USA Minnesota
+USA Missouri
+USA Mississippi
+USA Montana
+USA North Carolina
+USA North Dakota
+USA Nebraska
+USA New Hampshire
+USA New Jersey
+USA New Mexico
+USA Nevada
+USA New York
+USA Ohio
+USA Oklahoma
+USA Oregon
+USA Pennsylvania
+USA Rhode Island
+USA South Carolina
+USA South Dakota
+USA Tennessee
+USA Texas
+USA Utah
+USA Virginia
+USA Vermont
+USA Washington
+USA Wisconsin
+USA West Virginia
+USA Wyoming
