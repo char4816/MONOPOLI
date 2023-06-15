@@ -15,23 +15,26 @@ library(dplyr)
 library(tidyr)
 library(lubridate)
 library(tidyverse)
+library(scatterplot3d)
+library(plotly)
+library(data.table)
 
-downloadFlag = T
+downloadFlag = F
 
 pre_autofill_Google = T
 post_autofill_Google = T
 
 # Load in raw data
 
-raw_data_COVID <- read.csv('./InputData/data_COVID_2020_04_02.csv')
+raw_data_COVID <- fread('./InputData/data_COVID_for_pipeline.csv', sep=",")
 
-raw_data_static <- read.csv('./InputData/data_static_vars.csv')
+raw_data_static <- fread('./InputData/data_static_vars.csv', sep=",")
 
 ## ---- COVID-related data cleaning and processing ----
 
 # Manipulate original datasets (e.g., normalizing)
 data_COVID <- raw_data_COVID %>%
-  dplyr::select(-X) %>%
+  dplyr::select(-V1) %>%
   mutate(date = ymd(date))
   # mutate(date = as.Date(as.character(date), format = "%m/%d/%Y"))
 
@@ -126,13 +129,18 @@ data_static <- raw_data_static %>%
 # Merge together time series data (COVID and NPI)
 # data_ts <- left_join(data_COVID, data_static, by = c('ISO3'))
 
+unique(data_COVID$ISO3)
+unique(data_static$ISO3)
 data_features <- left_join(data_COVID, data_static, by = c('ISO3'))
+unique(data_features$ISO3)
+unique(data_features$Country)
 
 # Check merged dataframe
 dim(data_features)
 sapply(data_features, function(x) sum(is.na(x)))
 max(sapply(data_features, function(x) sum(is.na(x))))
 summary(data_features)
+unique(data_features$Country)
 
 #---Old way to Add Google Movement Data---#########################################################################################################################################################################
 # GoogData <- read_excel("./InputData/Google_final_29_Mar.xlsx", sheet = "Google_final_29_Mar", col_names = T)
@@ -202,18 +210,31 @@ summary(data_features)
 
 #---New way to Add Google Movement Data---#########################################################################################################################################################################
 '%ni%' <- Negate('%in%')
+options(timeout = max(300, getOption("timeout")))
 if(downloadFlag == T){
   download.file("https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv","./InputData/Global_Mobility_Report.csv")
 }
-GoogData <- read.csv("./InputData/Global_Mobility_Report.csv", header=T)
+GoogData <- fread("./InputData/Global_Mobility_Report.csv", header=T, sep=",")
 # Get just the overall country mobility stats
-GoogData_sub <- subset(GoogData, sub_region_1 == "" & sub_region_2 == "" & metro_area == "")
+# GoogData_sub <- subset(GoogData, ( (country_region != "United States" & sub_region_1 == "" & sub_region_2 == "" & metro_area == "") | (country_region == "United States" & sub_region_1 != "" & sub_region_2 == "" & metro_area == "")  | (country_region == "United States" & sub_region_1 == "" & sub_region_2 == "" & metro_area == "")))
+GoogData_sub <- subset(GoogData, ( (country_region != "United States" & sub_region_1 == "" & sub_region_2 == "" & metro_area == "") | (country_region == "United States" & sub_region_1 != "" & sub_region_2 == "" & metro_area == "")))
 GoogData_sub$country_region <- as.character(GoogData_sub$country_region)
+GoogData_sub$country_region[(GoogData_sub$country_region == "United States" & GoogData_sub$sub_region_1 != "" & GoogData_sub$sub_region_2 == "" & GoogData_sub$metro_area == "")] <- paste0("USA ",GoogData_sub$sub_region_1[(GoogData_sub$country_region == "United States" & GoogData_sub$sub_region_1 != "" & GoogData_sub$sub_region_2 == "" & GoogData_sub$metro_area == "")])
+# GoogData_sub$country_region_code[(GoogData_sub$country_region == "United States" & GoogData_sub$sub_region_1 != "" & GoogData_sub$sub_region_2 == "" & GoogData_sub$metro_area == "")] <- gsub(x = GoogData_sub$iso_3166_2_code[(GoogData_sub$country_region == "United States" & GoogData_sub$sub_region_1 != "" & GoogData_sub$sub_region_2 == "" & GoogData_sub$metro_area == "")], pattern = "-", replacement = "_")
 unique(data_features$Country[which(data_features$Country %ni% GoogData_sub$country_region)])
 GoogData_sub$country_region[GoogData_sub$country_region=="United States"] <- "US"
-GoogData_sub$country_region[GoogData_sub$country_region=="South Korea"] <- "Korea, South"
-GoogData_sub$country_region[GoogData_sub$country_region=="CÃ´te d'Ivoire"] <- "Cote d'Ivoire"
+GoogData_sub$country_region[GoogData_sub$country_region=="South Korea"] <- "South Korea"
+GoogData_sub$country_region[GoogData_sub$country_region=="CÃ´te d'Ivoire"] <- "Côte d'Ivoire"
 unique(data_features$Country[which(data_features$Country %ni% GoogData_sub$country_region)])
+unique(GoogData_sub$country_region[which(GoogData_sub$country_region %ni% data_features$Country)])
+unique(data_features$Country[which(data_features$Country %in% GoogData_sub$country_region)])
+usStates <- unique(data_features$Country[which(data_features$Country %in% GoogData_sub$country_region)])[grep(pattern = "USA",x = unique(data_features$Country[which(data_features$Country %in% GoogData_sub$country_region)]))]
+# correspName <- c("Alaska","Alabama","Arkansas","American Samoa","Arizona","California","Colorado","Connecticut","District of Columbia","Delaware","Florida","Georgia","Guam","Hawaii","Iowa","Idaho","Illinois","Indiana","Kansas","Kentucky","Louisiana","Massachusetts","Maryland","Maine","Michigan","Minnesota","Missouri","Mississippi","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Puerto Rico","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Virginia","Virgin Islands","Vermont","Washington","Wisconsin","West Virginia","Wyoming")
+correspName <- paste0("USA ", c("Alaska","Alabama","Arkansas","American Samoa","Arizona","California","Colorado","Connecticut","District of Columbia","Delaware","Florida","Georgia","Guam","Hawaii","Iowa","Idaho","Illinois","Indiana","Kansas","Kentucky","Louisiana","Massachusetts","Maryland","Maine","Michigan","Minnesota","Missouri","Mississippi","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Puerto Rico","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Virginia","Virgin Islands","Vermont","Washington","Wisconsin","West Virginia","Wyoming"))
+correspName[which(correspName %ni% usStates)]
+correspName[which(correspName %ni% data_features$Country)]
+correspName[which(correspName %ni% data_COVID$Country)]
+correspName[which(correspName %ni% data_static$FullName)]
 
 names(GoogData_sub)
 GoogData_sub2 <- GoogData_sub[,c("country_region","date","retail_and_recreation_percent_change_from_baseline",
@@ -293,6 +314,7 @@ dim(data_features3)
 sapply(data_features3, function(x) sum(is.na(x)))
 max(sapply(data_features3, function(x) sum(is.na(x))))
 summary(data_features3)
+summary(as.factor(data_features3$ISO3))
 
 # Add variable for day of the week
 # View(data_features3[c("Country.x","date","Google_Grocery_pharmacy","Google_Parks","Google_Residential","Google_Retail_recreation","Google_Transit_stations","Google_Workplaces")])
@@ -311,12 +333,60 @@ data_features3$weekdays <- as.numeric(data_features3$weekdays)
 
 # incorporate oxford NPI data
 # https://github.com/OxCGRT/covid-policy-tracker/blob/master/documentation/codebook.md
+# https://github.com/OxCGRT/covid-policy-scratchpad/blob/master/risk_of_openness_index/methodology.md
+# https://github.com/OxCGRT/covid-policy-scratchpad/blob/master/risk_of_openness_index/data/riskindex_timeseries_latest.csv
 if(downloadFlag == T){
-  download.file("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv","./InputData/OxCGRT_latest.csv")
+  download.file("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_nat_latest.csv","./InputData/OxCGRT_latest.csv")
+  # download.file("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv","./InputData/OxCGRT_latest.csv")
+  download.file("https://raw.githubusercontent.com/OxCGRT/covid-policy-scratchpad/master/risk_of_openness_index/data/riskindex_timeseries_latest.csv","./InputData/OxCGRT_latest_openness_index.csv")
+  download.file("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/United%20States/OxCGRT_USA_latest.csv","./InputData/OxCGRT_USA_latest.csv")
 }
-OxData <- read.csv("./InputData/OxCGRT_latest.csv", header=T)
+OxData <- fread("./InputData/OxCGRT_latest.csv", header=T, sep=",")
 OxData$Date <- str_replace(OxData$Date,"(\\d{4})(\\d{2})(\\d{2})$","\\1-\\2-\\3")
 OxData$Date <- as.Date(OxData$Date)
+USAfiller <- subset(OxData, (CountryCode == "USA" & is.na(RegionName) == T & is.na(RegionCode) == T))
+
+OxData_USA <- fread("./InputData/OxCGRT_USA_latest.csv", header=T, sep=",")
+OxData_USA <- subset(OxData_USA, RegionName != "")
+OxData_USA$Date <- str_replace(OxData_USA$Date,"(\\d{4})(\\d{2})(\\d{2})$","\\1-\\2-\\3")
+OxData_USA$Date <- as.Date(OxData_USA$Date)
+summary(as.factor(OxData_USA$CountryCode))
+summary(as.factor(OxData_USA$RegionCode))
+summary(as.factor(OxData_USA$RegionName))
+# the names which arent in the main dataframe
+names(OxData_USA)[which(names(OxData_USA) %ni% names(OxData))]
+OxData <- rbind(OxData, OxData_USA)
+
+
+OxData_openness <- fread("./InputData/OxCGRT_latest_openness_index.csv", header=T, sep=",")
+OxData_openness$Date <- as.Date(OxData_openness$Date)
+OxData_openness$V1 <- NULL
+unique(OxData$CountryCode)[unique(OxData$CountryCode) %in% unique(OxData_openness$CountryCode)]
+unique(OxData$CountryCode)[unique(OxData$CountryCode) %ni% unique(OxData_openness$CountryCode)]
+unique(OxData$CountryName)[unique(OxData$CountryName) %in% unique(OxData_openness$CountryName)]
+unique(OxData$CountryName)[unique(OxData$CountryName) %ni% unique(OxData_openness$CountryName)]
+
+OxData[1:10, c("CountryCode", "CountryName", "Date")]
+OxData_openness[1:10, c("CountryCode", "CountryName", "Date")]
+
+OxData <- left_join(OxData, OxData_openness, by = c("CountryCode" = "CountryCode", "CountryName" = "CountryName", "Date" = "Date"))
+# temp <- subset(OxData, (CountryCode == "USA") )
+# temp[1:10, c("CountryCode", "CountryName", "RegionName", "RegionCode", "Date")]
+summary(as.factor(OxData_USA$CountryCode))
+summary(as.factor(OxData_USA$RegionCode))
+summary(as.factor(OxData_USA$RegionName))
+OxData <- subset(OxData, (CountryCode != "USA" & is.na(RegionName) == T & is.na(RegionCode) == T) | (CountryCode == "USA" & is.na(RegionName) != T & is.na(RegionCode) != T) )
+unique(OxData$CountryName)
+
+OxData$CountryName[(OxData$CountryCode == "USA" & OxData$RegionName != "" & OxData$RegionCode != "")] <- paste0("USA ",OxData$RegionName[(OxData$CountryCode == "USA" & OxData$RegionName != "" & OxData$RegionCode != "")])
+unique(OxData$CountryName)
+unique(OxData$RegionCode)
+unique(OxData$CountryCode)
+OxData$CountryCode[(OxData$CountryCode == "USA" & OxData$RegionName != "" & OxData$RegionCode != "")] <- gsub(x = OxData$RegionCode[(OxData$CountryCode == "USA" & OxData$RegionName != "" & OxData$RegionCode != "")], pattern = "US_", replacement = "USA_")
+unique(OxData$CountryCode)
+OxData$RegionName <- NULL
+OxData$RegionCode <- NULL
+
 OxData$CountryCode <- as.character(OxData$CountryCode)
 unique(data_features3$ISO3[which(data_features3$ISO3 %ni% OxData$CountryCode)])
 OxData$CountryCode[OxData$CountryCode=="CHN"] <- "HUB"
@@ -328,37 +398,88 @@ data_features3$date <- as.Date(data_features3$date)
 
 # take the liberty of filling in no data
 # Binary flag for geographic scope
-OxData$C1_Flag[is.na(OxData$C1_Flag)] <- -999
-OxData$C2_Flag[is.na(OxData$C2_Flag)] <- -999
-OxData$C3_Flag[is.na(OxData$C3_Flag)] <- -999
-OxData$C4_Flag[is.na(OxData$C4_Flag)] <- -999
-OxData$C5_Flag[is.na(OxData$C5_Flag)] <- -999
-OxData$C6_Flag[is.na(OxData$C6_Flag)] <- -999
-OxData$C7_Flag[is.na(OxData$C7_Flag)] <- -999
+OxData$C1M_Flag[is.na(OxData$C1M_Flag)] <- -999
+OxData$C2M_Flag[is.na(OxData$C2M_Flag)] <- -999
+OxData$C3M_Flag[is.na(OxData$C3M_Flag)] <- -999
+OxData$C4M_Flag[is.na(OxData$C4M_Flag)] <- -999
+OxData$C5M_Flag[is.na(OxData$C5M_Flag)] <- -999
+OxData$C6M_Flag[is.na(OxData$C6M_Flag)] <- -999
+OxData$C7M_Flag[is.na(OxData$C7M_Flag)] <- -999
 OxData$E1_Flag[is.na(OxData$E1_Flag)] <- -999
 OxData$H1_Flag[is.na(OxData$H1_Flag)] <- -999
 OxData$M1_Wildcard <- NULL
 OxData$ConfirmedCases <- NULL
 OxData$ConfirmedDeaths <- NULL
 
-# View(OxData[,c("Date","CountryCode","ContainmentHealthIndexForDisplay","ContainmentHealthIndex")])
-OxData$ContainmentHealthIndex <- NULL
+# View(OxData[,c("Date","CountryCode","ContainmentHealthIndex_Average_ForDisplay","ContainmentHealthIndex_Average")])
+OxData$ContainmentHealthIndex_Average <- NULL
 # View(OxData[,c("Date","CountryCode","StringencyIndexForDisplay","StringencyIndex","StringencyLegacyIndexForDisplay","StringencyLegacyIndex")])
-OxData$StringencyIndex <- NULL
-OxData$StringencyLegacyIndexForDisplay <- NULL
-OxData$StringencyLegacyIndex <- NULL
+OxData$StringencyIndex_Average <- NULL
+OxData$StringencyIndex_Average_ForDisplay <- NULL
 # View(OxData[,c("Date","CountryCode","GovernmentResponseIndexForDisplay","GovernmentResponseIndex")])
-OxData$GovernmentResponseIndex <- NULL
+OxData$GovernmentResponseIndex_Average <- NULL
 # View(OxData[,c("Date","CountryCode","EconomicSupportIndexForDisplay","EconomicSupportIndex")])
-OxData$EconomicSupportIndex <- NULL
+# OxData$EconomicSupportIndex <- NULL
 
 names(OxData)
+oxNames <- names(OxData)
+oxNames <- oxNames[(grep(pattern=c("lag"),x = oxNames,invert=T) )]
+oxNames <- c(
+"C1M_School closing",
+"C2M_Workplace closing",
+"C3M_Cancel public events",
+"C4M_Restrictions on gatherings",
+"C5M_Close public transport",
+"C6M_Stay at home requirements",
+"C7M_Restrictions on internal movement",
+"C8EV_International travel controls",
+"E1_Income support",
+"E2_Debt/contract relief",
+"E3_Fiscal measures",
+"E4_International support",
+"H1_Public information campaigns",
+"H2_Testing policy",
+"H3_Contact tracing",
+"H4_Emergency investment in healthcare",
+"H5_Investment in vaccines",
+"H6M_Facial Coverings",
+# "H7_Vaccination policy",
+"H8M_Protection of elderly people",
+# "V1_Vaccine Prioritisation (summary)",
+# "V2A_Vaccine Availability (summary)",
+# "V2B_Vaccine age eligibility/availability age floor (general population summary)"
+# "V2C_Vaccine age eligibility/availability age floor (at risk summary)",
+# "V2D_Medically/ clinically vulnerable (Non-elderly)",
+# "V2E_Education",
+# "V2F_Frontline workers  (non healthcare)",
+# "V2G_Frontline workers  (healthcare)",
+# "V3_Vaccine Financial Support (summary)",
+# "V4_Mandatory Vaccination (summary)",
+# "MajorityVaccinated",
+# "PopulationVaccinated",
+"GovernmentResponseIndex_Average_ForDisplay",
+"ContainmentHealthIndex_Average_ForDisplay",
+# "EconomicSupportIndex",
+"EconomicSupportIndex_ForDisplay",
+"community_understanding",
+"manage_imported_cases",
+"cases_controlled",
+"test_and_trace",
+"endemic_factor",
+"openness_risk"
+)
 
 countryList <- unique(OxData$CountryCode)
 for(i in 1:length(countryList)){
   tsub <- subset(OxData, CountryCode == countryList[i])
+  # head(tsub[,c("CountryCode","Date","openness_risk")],30)
+  
   # for(j in c(2,5,8,11,14)){
   for(j in c(1:14)){
+    if(i == 1){
+      print(j)
+    }
+    
     # tsub[[paste0("C1_School.closing","_lag_",j)]] <- lag(tsub$C1_School.closing,j)
     # tsub[[paste0("C2_Workplace.closing","_lag_",j)]] <- lag(tsub$C2_Workplace.closing,j)
     # tsub[[paste0("C3_Cancel.public.events","_lag_",j)]] <- lag(tsub$C3_Cancel.public.events,j)
@@ -376,24 +497,36 @@ for(i in 1:length(countryList)){
     # tsub[[paste0("H3_Contact.tracing","_lag_",j)]] <- lag(tsub$H3_Contact.tracing,j)
     # tsub[[paste0("H4_Emergency.investment.in.healthcare","_lag_",j)]] <- lag(tsub$H4_Emergency.investment.in.healthcare,j)
     # tsub[[paste0("H5_Investment.in.vaccines","_lag_",j)]] <- lag(tsub$H5_Investment.in.vaccines,j)
-    tsub[[paste0("StringencyIndexForDisplay","_lag_",j)]] <- lag(tsub$StringencyIndexForDisplay,j)
-    tsub[[paste0("StringencyIndexForDisplay", "_lag_",j)]][1:j] <-
-      mean(tsub[[paste0("StringencyIndexForDisplay")]][1:3])
-    tsub[[paste0("GovernmentResponseIndexForDisplay","_lag_",j)]] <- lag(tsub$GovernmentResponseIndexForDisplay,j)
-    tsub[[paste0("GovernmentResponseIndexForDisplay", "_lag_",j)]][1:j] <-
-      mean(tsub[[paste0("GovernmentResponseIndexForDisplay")]][1:3])
-    tsub[[paste0("ContainmentHealthIndexForDisplay","_lag_",j)]] <- lag(tsub$ContainmentHealthIndexForDisplay,j)
-    tsub[[paste0("ContainmentHealthIndexForDisplay", "_lag_",j)]][1:j] <-
-      mean(tsub[[paste0("ContainmentHealthIndexForDisplay")]][1:3])
-    tsub[[paste0("EconomicSupportIndexForDisplay","_lag_",j)]] <- lag(tsub$EconomicSupportIndexForDisplay,j)
-    tsub[[paste0("EconomicSupportIndexForDisplay", "_lag_",j)]][1:j] <-
-      mean(tsub[[paste0("EconomicSupportIndexForDisplay")]][1:3])
+    for(n in 1:length(oxNames)){
+      nn <- oxNames[n]
+      # print(nn)
+      tsub[[paste0(nn,"_lag_",j)]] <- lag(tsub[[nn]],j)
+      tsub[[paste0(nn, "_lag_",j)]][1:j] <-
+        mean(tsub[[paste0(nn)]][1:3])
+    }
+    
+    # tsub[[paste0("StringencyIndexForDisplay","_lag_",j)]] <- lag(tsub$StringencyIndexForDisplay,j)
+    # tsub[[paste0("StringencyIndexForDisplay", "_lag_",j)]][1:j] <-
+    #   mean(tsub[[paste0("StringencyIndexForDisplay")]][1:3])
+    # tsub[[paste0("GovernmentResponseIndexForDisplay","_lag_",j)]] <- lag(tsub$GovernmentResponseIndexForDisplay,j)
+    # tsub[[paste0("GovernmentResponseIndexForDisplay", "_lag_",j)]][1:j] <-
+    #   mean(tsub[[paste0("GovernmentResponseIndexForDisplay")]][1:3])
+    # tsub[[paste0("ContainmentHealthIndexForDisplay","_lag_",j)]] <- lag(tsub$ContainmentHealthIndexForDisplay,j)
+    # tsub[[paste0("ContainmentHealthIndexForDisplay", "_lag_",j)]][1:j] <-
+    #   mean(tsub[[paste0("ContainmentHealthIndexForDisplay")]][1:3])
+    # tsub[[paste0("EconomicSupportIndexForDisplay","_lag_",j)]] <- lag(tsub$EconomicSupportIndexForDisplay,j)
+    # tsub[[paste0("EconomicSupportIndexForDisplay", "_lag_",j)]][1:j] <-
+    #   mean(tsub[[paste0("EconomicSupportIndexForDisplay")]][1:3])
+    # tsub[[paste0("openness_risk","_lag_",j)]] <- lag(tsub$openness_risk,j)
+    # tsub[[paste0("openness_risk", "_lag_",j)]][1:j] <-
+    #   mean(tsub[[paste0("openness_risk")]][1:3])
     }
   if(i == 1){
     OxData_1 <- tsub
   }else{
     OxData_1 <- rbind(OxData_1,tsub)
   }
+  cat(paste0(i, " "))
 }
 
 OxData_1 <- as_tibble(OxData_1)
@@ -592,16 +725,137 @@ data_features4[which(data_features4$Country == "Namibia"),c("PhysicianDensity")]
 data_features4[which(data_features4$Country == "Angola"),c("PopulationSmoking_male")] <- 14.2
 data_features4[which(data_features4$Country == "Angola"),c("PopulationSmoking_female")] <- 1.6
 
+# https://data.worldbank.org/indicator/SI.POV.GINI?locations=LB
+data_features4[which(data_features4$Country == "Trinidad and Tobago"),c("GINIindex")] <- 40.3
+# https://tobaccoatlas.org/country/trinidad-and-tobago/
+data_features4[which(data_features4$Country == "Trinidad and Tobago"),c("PopulationSmoking_male")] <- 22.3
+data_features4[which(data_features4$Country == "Trinidad and Tobago"),c("PopulationSmoking_female")] <- 5.1
+# Google
+data_features4[which(data_features4$Country == "Trinidad and Tobago"),c("Latitude")] <- 10.6918
+data_features4[which(data_features4$Country == "Trinidad and Tobago"),c("Longitude")] <- 61.2225
+
+# https://tobaccoatlas.org/country/Botswana/
+data_features4[which(data_features4$Country == "Botswana"),c("PopulationSmoking_male")] <- 25.4
+data_features4[which(data_features4$Country == "Botswana"),c("PopulationSmoking_female")] <- 3.5
+
+# https://tobaccoatlas.org/country/Togo/
+data_features4[which(data_features4$Country == "Togo"),c("PopulationSmoking_male")] <- 9.2
+data_features4[which(data_features4$Country == "Togo"),c("PopulationSmoking_female")] <- 1.1
+
+# https://data.worldbank.org/indicator/SI.POV.GINI?locations=LB
+data_features4[which(data_features4$Country == "Belize"),c("GINIindex")] <- 53.3
+# https://tobaccoatlas.org/country/Belize/
+data_features4[which(data_features4$Country == "Belize"),c("PopulationSmoking_male")] <- 13.3
+data_features4[which(data_features4$Country == "Belize"),c("PopulationSmoking_female")] <- 2.1
+# https://scholar.harvard.edu/files/alesina/files/fractionalization.pdf
+data_features4[which(data_features4$Country == "Belize"),c("EFindex")] <- 0.7015
+# https://www.un.org/en/development/desa/population/publications/pdf/ageing/household_size_and_composition_around_the_world_2017_data_booklet.pdf
+data_features4[which(data_features4$Country == "Belize"),c("Ave_household_size")] <- 4.1
+
+# Google
+data_features4[which(data_features4$Country == "Mongolia"),c("Latitude")] <- 46.8625
+data_features4[which(data_features4$Country == "Mongolia"),c("Longitude")] <- 103.8467
+
+# Google
+data_features4[which(data_features4$Country == "Mauritius"),c("Latitude")] <- -20.3484
+data_features4[which(data_features4$Country == "Mauritius"),c("Longitude")] <- 57.5522
+
+# Google
+data_features4[which(data_features4$Country == "Tanzania"),c("Latitude")] <- -6.3690
+data_features4[which(data_features4$Country == "Tanzania"),c("Longitude")] <- 34.8888
+
+# https://scholar.harvard.edu/files/alesina/files/fractionalization.pdf
+data_features4[which(data_features4$Country == "Malta"),c("EFindex")] <- 0.0414
+
+# https://scholar.harvard.edu/files/alesina/files/fractionalization.pdf
+data_features4[which(data_features4$Country == "Papua New Guinea"),c("EFindex")] <- 0.2718
+# https://doi.org/10.1002/app5.85
+# WHO Global Tobacco Epidemic 2013 Report (World health Organization 2013) stated that the 
+# current tobacco smoking rate for male adults was 60.3 percent and 27.0 percent for female adults
+data_features4[which(data_features4$Country == "Papua New Guinea"),c("PopulationSmoking_male")] <- 60.3
+data_features4[which(data_features4$Country == "Papua New Guinea"),c("PopulationSmoking_female")] <- 27.0
+
 # These countries seem to currently have a bug in their google mobility data, and for now need to be removed
 data_features4 <- subset(data_features4, Country!= "Afghanistan")
 data_features4 <- subset(data_features4, Country!= "Serbia")
 data_features4 <- subset(data_features4, Country!= "Georgia")
-# data_features4 <- subset(data_features4, Country!= "Russia")
 
+# stop()
+nsample <- 200000
+latitude <- c(runif(nsample, min = -180, max = 180), data_features4$Latitude)
+longitude <- c(runif(nsample, min = -180, max = 180),data_features4$Longitude)
+
+# latitude <- data_features4$Latitude
+# longitude <- data_features4$Longitude
+
+latitudeRadians <- (latitude/180)*pi
+longitudeRadians <- (longitude/180)*pi
+# Enter the semi major axis (metres) and inverse flattening of the associated ellipsoid
+Ellipsoidal_height <- 749.671
+
+Semi_major_axis <- 6378160.00
+Inverse_flattening <- 298.2500
+f <- 1/Inverse_flattening
+e2 <- 2*f-f*f
+v <- Semi_major_axis/(1-e2*sin(latitudeRadians)*sin(latitudeRadians))^0.5
+# Note the Earth-centred Cartesian coordinates (metres)
+cartesian_x <- (v+Ellipsoidal_height)*cos(latitudeRadians)*cos(longitudeRadians)
+cartesian_y <- (v+Ellipsoidal_height)*cos(latitudeRadians)*sin(longitudeRadians)
+cartesian_z <- ((1-e2)*v+Ellipsoidal_height)*sin(latitudeRadians)
+
+# for(angle in seq(from=10,to=370,by=30)){
+#   scatterplot3d(cbind(cartesian_x,cartesian_y,cartesian_z), angle = angle, type="h", color = "blue")
+#   Sys.sleep(2)
+# }
+
+plotdf <- as.data.frame(cbind(cartesian_x,cartesian_y,cartesian_z))
+colnames <- c("cartesian_x","cartesian_y","cartesian_z")
+
+plot_ly() %>% add_trace(x=cartesian_x[1:nsample], y=cartesian_y[1:nsample], z=cartesian_z[1:nsample], type="scatter3d", mode="markers", marker = list(color=cartesian_x[1:nsample], line=list(color = cartesian_x[1:nsample])), opacity = 1, size = 2) %>%
+  # add_trace(x=cartesian_x[(nsample+1):length(latitude)], y=cartesian_y[(nsample+1):length(latitude)], z=cartesian_z[(nsample+1):length(latitude)], type="scatter3d", mode="markers", marker = list(color=cartesian_x[(nsample+1):length(latitude)], line=list(color = cartesian_x[(nsample+1):length(latitude)])), opacity = 0.7, size = 15)
+  add_trace(x=cartesian_x[(nsample+1):length(latitude)], y=cartesian_y[(nsample+1):length(latitude)], z=cartesian_z[(nsample+1):length(latitude)], type="scatter3d", mode="markers", marker = list(color="black", line=list(color = "black")), opacity = 0.7, size = 15)
+
+df_latLong <- data_features4[,c("ISO3", "Latitude", "Longitude")]
+df_latLong <- distinct(df_latLong)
+write.csv(df_latLong, "./InputData/ISO3_Latidue_Longitude.csv", row.names = F)
+
+data_features4$Geo_Cartesian_x <- cartesian_x[(nsample+1):length(latitude)]
+data_features4$Geo_Cartesian_y <- cartesian_y[(nsample+1):length(latitude)]
+data_features4$Geo_Cartesian_z <- cartesian_z[(nsample+1):length(latitude)]
+data_features4$Latitude <- NULL
+data_features4$Longitude <- NULL
+
+
+# we want to focus on only pre-vaccine data, so choose dates that are before halloween of 2020
+# we will reserve november and december of 2020 for model validation
+dim(data_features4)
+data_features4 <- subset(data_features4, date < as.Date("2020-12-31"))
+# also remove laos because they don't have enough meaningful COVID cases
+data_features4 <- subset(data_features4, ISO3 != "LAO")
+data_features4 <- subset(data_features4, ISO3 != "FJI")
+data_features4 <- subset(data_features4, ISO3 != "LIE")
+dim(data_features4)
+data_features4[1:10,1:5]
+unique(data_features4$Country)
+
+# fill in the population based case columns for the USA states
+rowsToFill <- grep(pattern = "USA_", x = data_features4$ISO3, invert = F)
+data_features4$confirmed_cum_per_million[rowsToFill] <- data_features4$confirmed_cum[rowsToFill]/data_features4$Population_mill[rowsToFill]
+data_features4$death_cum_per_million[rowsToFill] <- data_features4$death_cum[rowsToFill]/data_features4$Population_mill[rowsToFill]
+summary(data_features4$confirmed_cum_per_million)
+
+
+# write out the file
 write.csv(data_features4, "./InputData/ML_features_oxford.csv", row.names = F)
 
 
+max(GoogData$date)
+max(OxData$Date)
+max(data_features4$date)
 
+unique(data_features4$Country)
+length(unique(data_features4$Country))
+correspName[which(correspName %ni% data_features4$Country)]
 
 
 

@@ -522,6 +522,8 @@ library(measurements)
 Latitude <- read_excel(xlFile, sheet = "Latitude", col_names = T)
 colnames(Latitude) <- c("FullName","Capital","Lat","Long")
 
+Latitude$Lat <- as.character(Latitude$Lat)
+Latitude$Long <- as.character(Latitude$Long)
 # change the degree symbol to a space
 # Latitude$Lat = gsub('Â°', ' ', Latitude$Lat)
 Latitude$Lat = gsub("'", ' ', Latitude$Lat)
@@ -536,11 +538,11 @@ Latitude$Long = gsub(" W", ' ', Latitude$Long)
 
 # strsplit(Latitude$Lat[1],"")
 # Latitude$Lat = gsub(' ', '', Latitude$Lat)
-# Latitude$Lat = gsub('°', ' ', Latitude$Lat)
+# Latitude$Lat = gsub('?', ' ', Latitude$Lat)
 # strsplit(Latitude$Lat[1],"")
 # strsplit(Latitude$Long[1],"")
 # Latitude$Long = gsub(' ', '', Latitude$Long)
-# Latitude$Long = gsub('°', ' ', Latitude$Long)
+# Latitude$Long = gsub('?', ' ', Latitude$Long)
 # strsplit(Latitude$Long[1],"")
 # head(Latitude$Long)
 # head(Latitude$Long)
@@ -598,5 +600,164 @@ if(HubeiFlag == T){
   merge_all$ISO3[merge_all$ISO3=="CHN"] <- "HUB"
 }
 
-write_csv(merge_all, './InputData/data_static_vars.csv')
+# write_csv(merge_all, './InputData/data_static_vars.csv')
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+statesAbbrev <- c("USA_AK","USA_AL","USA_AR","USA_AS","USA_AZ","USA_CA","USA_CO","USA_CT","USA_DC","USA_DE","USA_FL","USA_GA","USA_GU","USA_HI","USA_IA","USA_ID","USA_IL","USA_IN","USA_KS","USA_KY","USA_LA","USA_MA","USA_MD","USA_ME","USA_MI","USA_MN","USA_MO","USA_MS","USA_MT","USA_NC","USA_ND","USA_NE","USA_NH","USA_NJ","USA_NM","USA_NV","USA_NY","USA_OH","USA_OK","USA_OR","USA_PA","USA_PR","USA_RI","USA_SC","USA_SD","USA_TN","USA_TX","USA_UT","USA_VA","USA_VI","USA_VT","USA_WA","USA_WI","USA_WV","USA_WY")
+correspFips <- c("2","1","5","60","4","6","8","9","11","10","12","13","66","15","19","16","17","18","20","21","22","25","24","23","26","27","29","28","30","37","38","31","33","34","35","32","36","39","40","41","42","72","44","45","46","47","48","49","51","78","50","53","55","54","56")
+correspName <- c("Alaska","Alabama","Arkansas","American Samoa","Arizona","California","Colorado","Connecticut","District of Columbia","Delaware","Florida","Georgia","Guam","Hawaii","Iowa","Idaho","Illinois","Indiana","Kansas","Kentucky","Louisiana","Massachusetts","Maryland","Maine","Michigan","Minnesota","Missouri","Mississippi","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Puerto Rico","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Virginia","Virgin Islands","Vermont","Washington","Wisconsin","West Virginia","Wyoming")
+# correspName <- paste0("USA ", c("Alaska","Alabama","Arkansas","American Samoa","Arizona","California","Colorado","Connecticut","District of Columbia","Delaware","Florida","Georgia","Guam","Hawaii","Iowa","Idaho","Illinois","Indiana","Kansas","Kentucky","Louisiana","Massachusetts","Maryland","Maine","Michigan","Minnesota","Missouri","Mississippi","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Puerto Rico","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Virginia","Virgin Islands","Vermont","Washington","Wisconsin","West Virginia","Wyoming"))
+stateIDs <- as.data.frame(cbind(statesAbbrev,correspFips,correspName))
+colnames(stateIDs) <- c("statesAbbrev","statesFips","statesName")
+states_start <- stateIDs[,c("statesName", "statesAbbrev")]
+colnames(states_start) <- c("FullName", "ISO3")
+
+states_start$GHS_Prevent <- merge_all$GHS_Prevent[which(merge_all$ISO3 == "USA")]
+states_start$GHS_Detect <- merge_all$GHS_Detect[which(merge_all$ISO3 == "USA")]
+states_start$GHS_Respond <- merge_all$GHS_Respond[which(merge_all$ISO3 == "USA")]
+states_start$GHS_Health <- merge_all$GHS_Health[which(merge_all$ISO3 == "USA")]
+states_start$GHS_Norms <- merge_all$GHS_Norms[which(merge_all$ISO3 == "USA")]
+states_start$GHS_Risk <- merge_all$GHS_Risk[which(merge_all$ISO3 == "USA")]
+
+
+# https://www.bea.gov/system/files/2020-04/qgdpstate0420.pdf
+currentVariable <- read_excel("./InputData/Static_demographics_USA.xlsx", sheet = "GDP", col_names = T)
+colnames(currentVariable)[3] <- c("GDP_bill")
+colnames(currentVariable)[5] <- c("GDP_percapita")
+currentVariable <- currentVariable[,c("State", "GDP_bill", "GDP_percapita")]
+states_start <- merge(states_start, currentVariable, by.x = "FullName", by.y = "State", all.x = T, all.y = F)
+
+# https://www.census.gov/data/tables/time-series/demo/popest/2010s-state-total.html
+currentVariable <- read_excel("./InputData/Static_demographics_USA.xlsx", sheet = "population", col_names = T)
+currentVariable <- currentVariable[,c("State", "Population_mill")]
+states_start <- merge(states_start, currentVariable, by.x = "FullName", by.y = "State", all.x = T, all.y = F)
+
+states_start$HumanDevelopmentIndex_2018 <- merge_all$HumanDevelopmentIndex_2018[which(merge_all$ISO3 == "USA")]
+states_start$EIUDemocracyIndexScore_2019 <- merge_all$EIUDemocracyIndexScore_2019[which(merge_all$ISO3 == "USA")]
+states_start$UNOnlineServicesIndexScore_2018 <- merge_all$UNOnlineServicesIndexScore_2018[which(merge_all$ISO3 == "USA")]
+states_start$GlobalPeaceIndex <- merge_all$GlobalPeaceIndex[which(merge_all$ISO3 == "USA")]
+states_start$CorruptionsPerceptionIndex_2018 <- merge_all$CorruptionsPerceptionIndex_2018[which(merge_all$ISO3 == "USA")]
+states_start$HumanCapitalIndex_2017 <- merge_all$HumanCapitalIndex_2017[which(merge_all$ISO3 == "USA")]
+states_start$SDGIndexScore_2018 <- merge_all$SDGIndexScore_2018[which(merge_all$ISO3 == "USA")]
+
+
+states_start$age_0_14_Percent <- NA
+states_start$age_15_24_Percent <- NA
+states_start$age_25_54_Percent <- NA
+states_start$age_55_64_Percent <- NA
+states_start$age_65_plus_Percent <- NA
+states_start$age_0_14_MaleCount <- NA
+states_start$age_15_24_MaleCount <- NA
+states_start$age_25_54_MaleCount <- NA
+states_start$age_55_64_MaleCount <- NA
+states_start$age_65_plus_MaleCount <- NA
+states_start$age_0_14_FemaleCount <- NA
+states_start$age_15_24_FemaleCount <- NA
+states_start$age_25_54_FemaleCount <- NA
+states_start$age_55_64_FemaleCount <- NA
+states_start$age_65_plus_FemaleCount <- NA
+for(i in 1:56){
+# for(i in 1:1){ 
+  tryCatch({
+    twodig <- paste0(sprintf("%02d", i))
+    currentVariable <- read_excel(paste0("./InputData/sc-est2019-syasex-",twodig,".xlsx"), col_names = F)
+    currentVariable <- as.data.frame(currentVariable)
+    colnames(currentVariable) <- currentVariable[1,]
+    currentVariable <- currentVariable[3:nrow(currentVariable),]
+    myState <- colnames(currentVariable)[1]
+    currentVariable[[myState]] <- c(1:86) - 1
+    colnames(currentVariable) <- c("myState", "Total Population", "Male",  "Female")
+    # currentVariable <- as.character(currentVariable)
+    currentVariable$`Total Population` <- as.numeric(currentVariable$`Total Population`)
+    currentVariable$`Male` <- as.numeric(currentVariable$`Male`)
+    currentVariable$`Female` <- as.numeric(currentVariable$`Female`)
+    
+    states_start$age_0_14_Percent[which(states_start$FullName == myState)] <- sum(currentVariable$`Total Population`[1:15])/sum(currentVariable$`Total Population`[1:86])
+    states_start$age_15_24_Percent[which(states_start$FullName == myState)] <- sum(currentVariable$`Total Population`[16:25])/sum(currentVariable$`Total Population`[1:86])
+    states_start$age_25_54_Percent[which(states_start$FullName == myState)] <- sum(currentVariable$`Total Population`[26:55])/sum(currentVariable$`Total Population`[1:86])
+    states_start$age_55_64_Percent[which(states_start$FullName == myState)] <- sum(currentVariable$`Total Population`[56:65])/sum(currentVariable$`Total Population`[1:86])
+    states_start$age_65_plus_Percent[which(states_start$FullName == myState)] <- sum(currentVariable$`Total Population`[65:86])/sum(currentVariable$`Total Population`[1:86])
+    
+    states_start$age_0_14_MaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Male`[1:15])
+    states_start$age_15_24_MaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Male`[16:25])
+    states_start$age_25_54_MaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Male`[26:55])
+    states_start$age_55_64_MaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Male`[56:65])
+    states_start$age_65_plus_MaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Male`[65:86])
+    
+    states_start$age_0_14_FemaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Female`[1:15])
+    states_start$age_15_24_FemaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Female`[16:25])
+    states_start$age_25_54_FemaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Female`[26:55])
+    states_start$age_55_64_FemaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Female`[56:65])
+    states_start$age_65_plus_FemaleCount[which(states_start$FullName == myState)] <- sum(currentVariable$`Female`[65:86])
+  },error=function(e){
+  },finally={})
+}
+
+states_start$FullName[is.na(states_start[,c(19:33)])]
+
+states_start$PopulationGrowthRate <- merge_all$PopulationGrowthRate[which(merge_all$ISO3 == "USA")]
+states_start$PopulationSmoking_male <- merge_all$PopulationSmoking_male[which(merge_all$ISO3 == "USA")]
+states_start$PopulationSmoking_female <- merge_all$PopulationSmoking_female[which(merge_all$ISO3 == "USA")]
+states_start$GINIindex <- merge_all$GINIindex[which(merge_all$ISO3 == "USA")]
+
+merge_all$PercentUrban[which(merge_all$ISO3 == "USA")]
+currentVariable <- read_excel("./InputData/Static_demographics_USA.xlsx", sheet = "PercUrban", col_names = T)
+currentVariable <- currentVariable[,c("State", "2010_perc_Urban")]
+colnames(currentVariable) <- c("State","PercentUrban")
+states_start <- merge(states_start, currentVariable, by.x = "ISO3", by.y = "State", all.x = T, all.y = F)
+states_start$RateUrbanization <- merge_all$RateUrbanization[which(merge_all$ISO3 == "USA")]
+states_start$PhysicianDensity <- merge_all$PhysicianDensity[which(merge_all$ISO3 == "USA")]
+
+# https://web.archive.org/web/20111028061117/http://2010.census.gov/2010census/data/apportionment-dens-text.php
+merge_all$PopulationDensity[which(merge_all$ISO3 == "USA")]
+currentVariable <- read_excel("./InputData/Static_demographics_USA.xlsx", sheet = "popDensity", col_names = T)
+# currentVariable <- currentVariable[,c("State", "2010_perc_Urban")]
+colnames(currentVariable) <- c("State","PopulationDensity")
+states_start <- merge(states_start, currentVariable, by.x = "FullName", by.y = "State", all.x = T, all.y = F)
+
+
+states_start$Ave_household_size <- merge_all$Ave_household_size[which(merge_all$ISO3 == "USA")]
+states_start$Percent_house_Nuclear <- merge_all$Percent_house_Nuclear[which(merge_all$ISO3 == "USA")]
+states_start$Percent_house_Multi_generation <- merge_all$Percent_house_Multi_generation[which(merge_all$ISO3 == "USA")]
+states_start$Percent_house_Three_generation <- merge_all$Percent_house_Three_generation[which(merge_all$ISO3 == "USA")]
+states_start$Percent_house_Skip_generation <- merge_all$Percent_house_Skip_generation[which(merge_all$ISO3 == "USA")]
+states_start$EFindex <- merge_all$EFindex[which(merge_all$ISO3 == "USA")]
+
+# https://www.ncdc.noaa.gov/
+merge_all$AverageTemp[which(merge_all$ISO3 == "USA")]
+currentVariable <- read_excel("./InputData/Static_demographics_USA.xlsx", sheet = "AveTemp", col_names = T)
+currentVariable <- currentVariable[,c("State", "Mean_C")]
+colnames(currentVariable) <- c("State","AverageTemp")
+states_start <- merge(states_start, currentVariable, by.x = "FullName", by.y = "State", all.x = T, all.y = F)
+
+states_start$Tropical <- merge_all$Tropical[which(merge_all$ISO3 == "USA")]
+
+# https://developers.google.com/public-data/docs/canonical/states_csv
+merge_all$AverageTemp[which(merge_all$ISO3 == "USA")]
+currentVariable <- read_excel("./InputData/Static_demographics_USA.xlsx", sheet = "LatAndLong", col_names = T)
+currentVariable <- currentVariable[,c("State", "latitude","longitude")]
+colnames(currentVariable) <- c("State","Latitude","Longitude")
+states_start <- merge(states_start, currentVariable, by.x = "FullName", by.y = "State", all.x = T, all.y = F)
+
+# cat(names(merge_all),sep="\n")
+
+states_start$FullName <- paste0("USA ", states_start$FullName)
+
+cbind(names(merge_all),names(states_start))
+
+finallyDone <- rbind(merge_all,states_start)
+
+
+write_csv(finallyDone, './InputData/data_static_vars.csv')

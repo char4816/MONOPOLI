@@ -4,6 +4,8 @@
 # Written on: March 24th, 2020
 # Updated on: June 20th, 2020
 
+setwd("/pl/active/IBG/char4816/MONOPOLI")
+
 library(tidyverse)
 library(EpiEstim)
 library(R0)
@@ -44,7 +46,7 @@ RunWT_R_flag <- T
 # the number of lag factors you want
 nLags <- 14
 # Number of cores to use when running rf model and vsurf
-num_cores = detectCores()
+num_cores = detectCores() - 1
 # What NA acion to use for models
 nasaction = na.omit
 # Number of trees to train on
@@ -89,35 +91,14 @@ simpleCap <- function(x) {
 # cc=1
 
 # Choose the testing country
-testing_country <- "USA"
-
-data_clean <- read.csv("./InputData/ML_features_oxford.csv")
-data_clean$date <- as.Date(data_clean$date)
-data_clean1 <- subset(data_clean, ISO3 == testing_country)
-training_countries <- unique(as.character(data_clean$ISO3))
-D4 <-
-  data_clean1$date[which.max(data_clean1$confirmed_cum_per_million)]
-D3 <-
-  data_clean1$date[which.min(
-    abs(
-      data_clean1$confirmed_cum_per_million - data_clean1$confirmed_cum_per_million[which(data_clean1$date == D4)] *
-        2 / 3
-    )
-  )]
-D2 <-
-  data_clean1$date[which.min(
-    abs(
-      data_clean1$confirmed_cum_per_million - data_clean1$confirmed_cum_per_million[which(data_clean1$date == D4)] *
-        1 / 3
-    )
-  )]
-D1 <-
-  data_clean1$date[which.min(
-    abs(
-      data_clean1$confirmed_cum_per_million - data_clean1$confirmed_cum_per_million[which(data_clean1$date == D4)] *
-        1 / 10
-    )
-  )]
+testing_country <- "GBR"
+tmp_dateFind <- read.csv("./InputData/ML_features_oxford.csv")
+tmp_dateFind$date <- as.Date(tmp_dateFind$date)
+data_clean1 <- subset(tmp_dateFind, ISO3 == testing_country)
+D4 <-data_clean1$date[which.max(data_clean1$confirmed_cum_per_million)]
+D3 <-data_clean1$date[which.min(abs(data_clean1$confirmed_cum_per_million - data_clean1$confirmed_cum_per_million[which(data_clean1$date == D4)] *2 / 3))]
+D2 <-data_clean1$date[which.min(abs(data_clean1$confirmed_cum_per_million - data_clean1$confirmed_cum_per_million[which(data_clean1$date == D4)] *1 / 3))]
+D1 <-data_clean1$date[which.min(abs(data_clean1$confirmed_cum_per_million - data_clean1$confirmed_cum_per_million[which(data_clean1$date == D4)] *1 / 10))]
 earliestD <- which(data_clean1$confirmed_cum >= 50)[1]
 # if(D1 - data_clean1$date[start])
 D0 <- data_clean1$date[earliestD] + 18 #"2020-03-21"
@@ -138,6 +119,7 @@ forecastingTime = 30
 
 data_clean <- read.csv("./InputData/ML_features_oxford.csv")
 data_clean$date <- as.Date(data_clean$date)
+training_countries <- unique(as.character(data_clean$ISO3))
 data_clean_train <- data_clean
 data_clean <- subset(data_clean, date <= D4)
 
@@ -150,23 +132,15 @@ summary(data_clean)
 lengthClist <- length(training_countries)
 training_countries_OG <- training_countries
 for (i in 1:lengthClist) {
-  training_subset <-
-    subset(data_clean_train, ISO3 %in% training_countries_OG[i])
-  start <-
-    which(training_subset$confirmed_cum_per_million >= incidence_start_point)[1]
+  training_subset <- subset(data_clean_train, ISO3 %in% training_countries_OG[i])
+  start <- which(training_subset$confirmed_cum_per_million >= incidence_start_point)[1]
   if (is.na(start) == F) {
-    training_subset_aligned <-
-      training_subset[start:nrow(training_subset),]
+    training_subset_aligned <- training_subset[start:nrow(training_subset),]
   }
   if (nrow(training_subset_aligned) < 18 | is.na(start)) {
-    training_countries <-
-      training_countries[which(training_countries != training_countries_OG[i])]
+    training_countries <- training_countries[which(training_countries != training_countries_OG[i])]
   } else{
-    print(paste0(
-      training_countries_OG[i],
-      ": ",
-      nrow(training_subset_aligned)
-    ))
+    print(paste0(training_countries_OG[i],": ",nrow(training_subset_aligned)))
   }
 }
 
@@ -340,8 +314,9 @@ for (i in 1:length(training_countries)) {
     # https://science.sciencemag.org/content/368/6491/eabb6936
     # The distribution had a median of 5.0 days and standard deviation of 1.9 days. [...]  The distribution is best described by a Weibull distribution
     mGT <- generation.time("weibull", c(5.0, 1.9))
-    incid[incid == 0] <- 1
-    estR0 <- est.R0.TD(incid, mGT, begin=empez, end=fin, nsim=1000)
+    incid[which(incid < 1)] <- 1
+    incid <- incid[which(names(incid) == empez):which(names(incid) == fin)]
+    estR0 <- R0::est.R0.TD(incid, GT = mGT, begin = empez, end = fin, nsim=1000)
     ## An interesting way to look at these results is to agregate initial data by longest time unit,
     ## such as weekly incidence. This gives a global overview of the epidemic.
     # estR0.weekly <- smooth.Rt(estR0, 7)
@@ -446,7 +421,10 @@ for (i in 1:length(training_countries)) {
 
 dev.off()
 
+# stop()
+
 # preserve the original dataframes before we make changes to them...
+training_ready$HumanCapitalIndex_2017 <- as.numeric(training_ready$HumanCapitalIndex_2017)
 training_ready_OG <- training_ready
 
 # filter training data
@@ -474,6 +452,28 @@ training_ready_sub_tmp <- training_ready %>%
   dplyr::select(-contains("H3")) %>%
   dplyr::select(-contains("H4")) %>%
   dplyr::select(-contains("H5")) %>%
+  dplyr::select(-contains("H6")) %>%
+  dplyr::select(-contains("H7")) %>%
+  dplyr::select(-contains("H8")) %>%
+  dplyr::select(-contains("V1")) %>%
+  dplyr::select(-contains("V2")) %>%
+  dplyr::select(-contains("V3")) %>%
+  dplyr::select(-contains("V4")) %>%
+  dplyr::select(-contains("cases_controlled")) %>%
+  dplyr::select(-contains("community_understanding")) %>%
+  dplyr::select(-contains("endemic_factor")) %>%
+  dplyr::select(-contains("manage_imported_cases")) %>%
+  dplyr::select(-contains("test_and_trace")) %>%
+  dplyr::select(-contains("_lag_2")) %>%
+  dplyr::select(-contains("_lag_4")) %>%
+  dplyr::select(-contains("_lag_5")) %>%
+  dplyr::select(-contains("_lag_6")) %>%
+  dplyr::select(-contains("_lag_8")) %>%
+  dplyr::select(-contains("_lag_9")) %>%
+  dplyr::select(-contains("_lag_10")) %>%
+  dplyr::select(-contains("_lag_11")) %>%
+  dplyr::select(-contains("_lag_12")) %>%
+  dplyr::select(-contains("_lag_13")) %>%
   dplyr::select(
     -c(
       confirmed_cum,
@@ -485,7 +485,15 @@ training_ready_sub_tmp <- training_ready %>%
       FullName,
       recovered,
       time,
-      R0_lag_2
+      # R0_lag_1,
+      # R0_lag_2,
+      # R0_lag_3,
+      Jurisdiction,
+      MajorityVaccinated,
+      Tropical,
+      PopulationVaccinated,
+      EconomicSupportIndex
+      
     )
   )
 
@@ -505,9 +513,14 @@ for(name in excludedCountries){
   print(name)
   checkNA <- check %>%
     summarise_all(funs(sum(is.na(.))))
-  print(colnames(checkNA)[which(checkNA[1,]>=(.8*nrow(check)))])
+  print(colnames(checkNA)[which(checkNA[1,]>=(.99*nrow(check)))])
   print("..............")
 }
+
+checker <- subset(training_ready, is.na(HumanCapitalIndex_2017) == T)
+unique(checker$Country)
+
+# stop()
 
 training_ready_sub2 <- training_ready %>%
   dplyr::select(-contains("confirmed_cum_per_million")) %>%
@@ -533,10 +546,32 @@ training_ready_sub2 <- training_ready %>%
   dplyr::select(-contains("H3")) %>%
   dplyr::select(-contains("H4")) %>%
   dplyr::select(-contains("H5")) %>%
+  dplyr::select(-contains("H6")) %>%
+  dplyr::select(-contains("H7")) %>%
+  dplyr::select(-contains("H8")) %>%
+  dplyr::select(-contains("V1")) %>%
+  dplyr::select(-contains("V2")) %>%
+  dplyr::select(-contains("V3")) %>%
+  dplyr::select(-contains("V4")) %>%
+  dplyr::select(-contains("cases_controlled")) %>%
+  dplyr::select(-contains("community_understanding")) %>%
+  dplyr::select(-contains("endemic_factor")) %>%
+  dplyr::select(-contains("manage_imported_cases")) %>%
+  dplyr::select(-contains("test_and_trace")) %>%
+  dplyr::select(-contains("_lag_2")) %>%
+  dplyr::select(-contains("_lag_4")) %>%
+  dplyr::select(-contains("_lag_5")) %>%
+  dplyr::select(-contains("_lag_6")) %>%
+  dplyr::select(-contains("_lag_8")) %>%
+  dplyr::select(-contains("_lag_9")) %>%
+  dplyr::select(-contains("_lag_10")) %>%
+  dplyr::select(-contains("_lag_11")) %>%
+  dplyr::select(-contains("_lag_12")) %>%
+  dplyr::select(-contains("_lag_13")) %>%
   dplyr::select(
     -c(
       confirmed_cum,
-      date,
+      # date,
       Country,
       ISO3,
       confirmed,
@@ -544,17 +579,40 @@ training_ready_sub2 <- training_ready %>%
       FullName,
       recovered,
       time,
-      R0_lag_2
+      # R0_lag_1,
+      # R0_lag_2,
+      # R0_lag_3,
+      Jurisdiction,
+      MajorityVaccinated,
+      Tropical,
+      PopulationVaccinated,
+      EconomicSupportIndex
+      
     )
   ) %>%
   mutate_if(is.factor, as.character) %>%
   mutate_if(is.character, as.numeric) %>%
   mutate_if(is.integer, as.numeric)
 
+# stop("whatsup")
+
+# View(as.data.frame(names(training_ready_sub2)[order(names(training_ready_sub2))]))
+
+dim(training_ready_sub2)
+training_ready_sub2 <- subset(training_ready_sub2, date < as.Date("2020-11-03"))
+dim(training_ready_sub2)
+training_ready_sub2 <- training_ready_sub2 %>% dplyr::select(-c(date))
+
 #---VSURF Variable Selection---#########################################################################################################################################################################
 outcomeVariable <- "R0"
 dim(training_ready_sub2)
-sapply(training_ready_sub2, function(x) sum(is.na(x)))
+checkVars <- as.data.frame(sapply(training_ready_sub2, function(x) sum(is.na(x)))); colnames(checkVars) <- c("N_NA")
+checkVars$variable <- rownames(checkVars)
+checkVars <- checkVars[order(checkVars$N_NA, decreasing = T),]
+# View(checkVars)
+# nrow before looking at complete cases
+dim(training_ready_sub2)
+# nrow after looking at complete cases
 dim(training_ready_sub2[complete.cases(training_ready_sub2), which(colnames(training_ready_sub2) %ni% outcomeVariable)])
 
 mod_formula <- as.formula(paste(outcomeVariable, "~", "."))
@@ -581,10 +639,8 @@ if (VSURFflag == T) {
   summary(training_ready_sub2)
   
   # Pick the best mtry
-  x <-
-    training_ready_sub2[complete.cases(training_ready_sub2), which(colnames(training_ready_sub2) %ni% outcomeVariable)]
-  y <-
-    training_ready_sub2[complete.cases(training_ready_sub2), which(colnames(training_ready_sub2) %in% outcomeVariable)]
+  x <- training_ready_sub2[complete.cases(training_ready_sub2), which(colnames(training_ready_sub2) %ni% outcomeVariable)]
+  y <- training_ready_sub2[complete.cases(training_ready_sub2), which(colnames(training_ready_sub2) %in% outcomeVariable)]
   # bestMtry <-
   #   tuneRF(
   #     x,
@@ -617,11 +673,7 @@ if (VSURFflag == T) {
     # nmj = 1,
     nfor.thres = 20
   )
-  save.image(
-    file = paste0("./InputData/",
-                  "thresh_save",
-                  "_VSURFkeepers.Rdata")
-  )
+  save.image(file = paste0("./InputData/", "thresh_save", "_VSURFkeepers.Rdata"))
   # INTERPRETATION
   results.vsurf_interp <- VSURF_interp(
     x,
@@ -635,11 +687,7 @@ if (VSURFflag == T) {
     nfor.interp = 10,
     nmj = 1
   )
-  save.image(
-    file = paste0("./InputData/",
-                  "interp_save",
-                  "_VSURFkeepers.Rdata")
-  )
+  save.image(file = paste0("./InputData/","interp_save","_VSURFkeepers.Rdata"))
   # PREDICTION
   results.vsurf_pred <- VSURF_pred(
     x,
@@ -654,11 +702,7 @@ if (VSURFflag == T) {
     nfor.pred = 10,
     nmj = 1
   )
-  save.image(
-    file = paste0("./InputData/",
-                  "pred_save",
-                  "_VSURFkeepers.Rdata")
-  )
+  save.image(file = paste0("./InputData/","pred_save","_VSURFkeepers.Rdata"))
   
   results.vsurf <- results.vsurf_pred
   # results.vsurf <- VSURF(
@@ -675,10 +719,8 @@ if (VSURFflag == T) {
   nmj_used = 1
   results.vsurf.OG <- results.vsurf
   
-  nVarInterp <-
-    length(colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp]))
-  nVarPred <-
-    length(colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred]))
+  nVarInterp <- length(colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp]))
+  nVarPred <- length(colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred]))
   
   # look at results of VSURF
   summary(results.vsurf)
@@ -693,12 +735,9 @@ if (VSURFflag == T) {
   colnames(training_ready_sub2[, results.vsurf_thresh$varselect.thres])
   colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp])
   colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred])    # The final list of variables to be included according to the VSURF methodology.
-  VSURF_thres_keepers <-
-    colnames(training_ready_sub2[, results.vsurf_thresh$varselect.thres])
-  VSURF_interp_keepers <-
-    colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp])
-  VSURF_pred_keepers <-
-    colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred])
+  VSURF_thres_keepers <- colnames(training_ready_sub2[, results.vsurf_thresh$varselect.thres])
+  VSURF_interp_keepers <- colnames(training_ready_sub2[, results.vsurf_interp$varselect.interp])
+  VSURF_pred_keepers <- colnames(training_ready_sub2[, results.vsurf_pred$varselect.pred])
   # Save the final list from D4 to be used for D3, D2, and D1
   # save(nmj_used, VSURF_thres_keepers, VSURF_interp_keepers, VSURF_pred_keepers, results.vsurf, results.vsurf.OG, file = paste0("./InputData/",testing_country,"_VSURFkeepers_R0.Rdata"))
   
@@ -706,9 +745,7 @@ if (VSURFflag == T) {
   
 }else{
   # load("./InputData/tmpChris_All_Countries_VSURFkeepers_R0_oxford.Rdata")
-  load(paste0("./InputData/",
-              "All_Countries",
-              "_VSURFkeepers_R0_oxford.Rdata"))
+  load(paste0("./InputData/","All_Countries","_VSURFkeepers_R0_oxford.Rdata"))
 }
 
 #---RF model---#########################################################################################################################################################################
@@ -745,10 +782,8 @@ glimpse(training_ready_sub_vsurf_result)
 glimpse(training_ready_sub_vsurf_result_varImp)
 
 # Pick the best mtry
-x <-
-  training_ready_sub_vsurf_result_varImp[complete.cases(training_ready_sub_vsurf_result_varImp), which(colnames(training_ready_sub_vsurf_result_varImp) %ni% outcomeVariable)]
-y <-
-  training_ready_sub_vsurf_result_varImp[complete.cases(training_ready_sub_vsurf_result_varImp), which(colnames(training_ready_sub_vsurf_result_varImp) %in% outcomeVariable)]
+x <- training_ready_sub_vsurf_result_varImp[complete.cases(training_ready_sub_vsurf_result_varImp), which(colnames(training_ready_sub_vsurf_result_varImp) %ni% outcomeVariable)]
+y <- training_ready_sub_vsurf_result_varImp[complete.cases(training_ready_sub_vsurf_result_varImp), which(colnames(training_ready_sub_vsurf_result_varImp) %in% outcomeVariable)]
 if (length(training_ready_sub_vsurf_result_varImp) > 2) {
   # bestMtry <-
   #   tuneRF(
@@ -798,6 +833,7 @@ library(sjPlot)
 library(sjlabelled)
 library(sjmisc)
 library(ggplot2)
+
 # exploring a linear model too...
 # myLm <- lm(formula = mod_formula, data = training_ready_sub2[complete.cases(training_ready_sub2), ])
 # myLmAIC <- stepAIC(myLm)
@@ -853,10 +889,24 @@ for (r in 1:nrow(df2)) {
 }
 df2 <- df2[order(df2$imp), ]
 names1 <- df2$variable
-names2 <- gsub(x = names1, pattern = "GovernmentResponseIndexForDisplay", "Government Response Index")
-names2 <- gsub(x = names2, pattern = "StringencyIndexForDisplay", "Stringency Index")
-names2 <- gsub(x = names2, pattern = "ContainmentHealthIndexForDisplay", "Containment Health Index")
-names2 <- gsub(x = names2, pattern = "EconomicSupportIndexForDisplay", "Economic Support Index")
+names2 <- gsub(x = names1, pattern = "GovernmentResponseIndex Average ForDisplay", "Government Response Index")
+# names2 <- gsub(x = names2, pattern = "StringencyIndexForDisplay", "Stringency Index")
+names2 <- gsub(x = names2, pattern = "ContainmentHealthIndex Average ForDisplay", "Containment Health Index")
+names2 <- gsub(x = names2, pattern = "EconomicSupportIndex ForDisplay", "Economic Support Index")
+names2 <- gsub(x = names2, pattern = "Openness Risk", "Openness Risk Index")
+names2 <- gsub(x = names2, pattern = "GINIindex", "GINI Index")
+names2 <- gsub(x = names2, pattern = "PopulationDensity", "Population Density")
+names2 <- gsub(x = names2, pattern = "GDP Bill", "GDP")
+names2 <- gsub(x = names2, pattern = "GDP Percapita", "GDP Per Capita")
+names2 <- gsub(x = names2, pattern = "Population Mill", "Population Size")
+names2 <- gsub(x = names2, pattern = "Age 0 14 Percent", "Percent of Population Aged 0-14")
+names2 <- gsub(x = names2, pattern = "Age 15 24 Percent", "Percent of Population Aged 15-24")
+names2 <- gsub(x = names2, pattern = "Age 55 64 Percent", "Percent of Population Aged 55-64")
+names2 <- gsub(x = names2, pattern = "Geo Cartesian Y", "Earth-Centered Cartesian Y-Coordinate")
+names2 <- gsub(x = names2, pattern = "Google", "Google Mobility Trends -")
+names2 <- gsub(x = names2, pattern = "Retail Recreation", "Retail & Recreation")
+names2 <- gsub(x = names2, pattern = "R0", "R(t)")
+
 df2$variable <- names2
 
 df2$variable <-
@@ -888,7 +938,7 @@ plot_varimp <- ggplot2::ggplot(df2) +
   theme(
     axis.text.x = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 0,
       hjust = .5,
       vjust = .5
@@ -900,12 +950,12 @@ plot_varimp <- ggplot2::ggplot(df2) +
     ),
     axis.title.x = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 0
     ),
     axis.title.y = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 90
     )
   )
@@ -931,24 +981,24 @@ plot_varimp_R <- ggplot2::ggplot(df2_R) +
   theme(
     axis.text.x = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 0,
       hjust = .5,
       vjust = .5
     ),
     axis.text.y = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 0
     ),
     axis.title.x = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 0
     ),
     axis.title.y = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 90
     )
   )
@@ -974,7 +1024,7 @@ plot_varimp_nonR <- ggplot2::ggplot(df2_nonR) +
   theme(
     axis.text.x = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 0,
       hjust = .5,
       vjust = .5
@@ -986,12 +1036,12 @@ plot_varimp_nonR <- ggplot2::ggplot(df2_nonR) +
     ),
     axis.title.x = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 0
     ),
     axis.title.y = element_text(
       color = "black",
-      size = 13,
+      size = 11,
       angle = 90
     )
   )

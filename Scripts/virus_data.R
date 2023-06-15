@@ -4,6 +4,10 @@
 # Written on: March 20th, 2020
 # Updated on: June 20th, 2020
 
+# Update data?
+# coronavirus::update_dataset(T)
+'%ni%' <- Negate('%in%')
+
 
 # TRUE if you want to scale by population
 incidence_flag <- T
@@ -24,10 +28,6 @@ library(purrr)
 # moving average
 library(zoo)
 
-
-# Update data?
-update_dataset(T)
-
 # Explore the data
 data("coronavirus")
 head(coronavirus)
@@ -41,31 +41,32 @@ population <- read_excel("./InputData/pop.xlsx", sheet = "pop_1000s", col_names 
 
 population_countrycodes <- merge(country_codes,population, by='ISO3')
 population_countrycodes <- population_countrycodes %>%
-  mutate(Country = Country.x) %>%
+  dplyr::mutate(Country = Country.x) %>%
   dplyr::select(-Country.x,-Country.y,-PopTotal_1000s)
 glimpse(population_countrycodes)
 
 # Add ISO country codes to project
-raw_data = tbl_df(merge(coronavirus, population_countrycodes, by.x='country', by.y='Country'))
+raw_data = tbl_df(merge(coronavirus, population_countrycodes, by.x='iso3', by.y='ISO3'))
 if(HubeiFlag==T){
-  raw_data = mutate(raw_data, country = replace(country,country == 'China', 'Hubei')) %>%
+  raw_data = dplyr::mutate(raw_data, country = replace(country,country == 'China', 'Hubei')) %>%
     # filter(country =='Hubei' | province != 'Hubei')
     filter(!province %in% c('Shandong','Guizhou','Hainan',
            'Macau','Ningxia','Inner Mongolia','Yunnan','Sichuan','Zhejiang','Guangxi','Guangdong','Hong Kong','Hunan',
            'Shaanxi','Shanxi','Tibet','Heilongjiang','Qinghai','Hebei','Chongqing','Liaoning','Xinjiang','Gansu',
            'Jiangsu','Jiangxi','Anhui','Henan','Shanghai','Fujian','Tianjin','Beijing','Jilin')) %>%
-    mutate(ISO3 = replace(ISO3, ISO3=='CHN','HUB'))
+    dplyr::mutate(iso3 = replace(iso3, iso3=='CHN','HUB'))
     
 }
 
 ## Functions to apply to a single country  ----
 # Function to create a collapsed time series of data with cummulative sums for each country (if multiple regions exist)
 country_timeseries <- function(df, cntry, incidence=T, plot=F){
+  print(cntry)
   pop <- df %>%
-    filter(ISO3==cntry) %>%
+    filter(iso3==cntry) %>%
     summarise(pop = mean(PopTotal))
   pop <- as.numeric(pop)
-  output <- df %>% filter(ISO3==cntry) %>%
+  output <- df %>% filter(iso3==cntry) %>%
     group_by(date, type) %>%
     summarise(daily_cases = sum(cases)) %>%
     pivot_wider(names_from = type,
@@ -73,15 +74,15 @@ country_timeseries <- function(df, cntry, incidence=T, plot=F){
     ungroup()
   if(incidence==T){
     output <- output %>%
-      mutate(confirmed_cum_per_million = cumsum(confirmed) / (pop/1000000)) %>%
-      # mutate(confirmed_cum_per_million = confirmed / (pop/1000000)) %>%
-      mutate(death_cum_per_million = cumsum(death) / (pop/1000000)) %>%
-      mutate(confirmed_cum = cumsum(confirmed)) %>%
-      mutate(death_cum = cumsum(death))
+      dplyr::mutate(confirmed_cum_per_million = cumsum(confirmed) / (pop/1000000)) %>%
+      # dplyr::mutate(confirmed_cum_per_million = confirmed / (pop/1000000)) %>%
+      dplyr::mutate(death_cum_per_million = cumsum(death) / (pop/1000000)) %>%
+      dplyr::mutate(confirmed_cum = cumsum(confirmed)) %>%
+      dplyr::mutate(death_cum = cumsum(death))
   }else{
     output <- output %>%
-      mutate(confirmed_cum = cumsum(confirmed) ) %>%
-      mutate(death_cum = cumsum(death) )
+      dplyr::mutate(confirmed_cum = cumsum(confirmed) ) %>%
+      dplyr::mutate(death_cum = cumsum(death) )
   }
   if(plot==T){
     # Plot cummulative sum of cases
@@ -132,7 +133,7 @@ create_COVID_ML_df <- function(coronavirus, num_cases_min = 4000, num_lag=10, in
   # aggregate the raw data
   summary_df <- coronavirus %>%
     filter(country != 'Cruise Ship') %>%
-    group_by(country, type) %>%
+    group_by(iso3, type) %>%
     summarise(total_cases = sum(cases)) %>%
     filter(type=='confirmed') %>%
     arrange(-total_cases)
@@ -145,7 +146,7 @@ create_COVID_ML_df <- function(coronavirus, num_cases_min = 4000, num_lag=10, in
       filter(type=='confirmed')
     HUB[1,1] <- 'Hubei'
     summary_df = summary_df %>%
-      filter(country != 'China') %>%
+      filter(iso3 != 'CHN') %>%
       bind_rows(HUB) %>%
       arrange(-total_cases)
   }
@@ -155,20 +156,20 @@ create_COVID_ML_df <- function(coronavirus, num_cases_min = 4000, num_lag=10, in
     filter(total_cases >= num_cases_min) %>%
     arrange(-total_cases)
   # collect ISO3 number
-  countries_training = merge(countries_list, country_codes, by.x='country', by.y='Country')
+  countries_training = merge(countries_list, country_codes, by.x='iso3', by.y='ISO3')
   countries_training <- countries_training %>%
     arrange(-total_cases)
   
   # create the time series data and lag factors
   df_ts_lag_train <- data.frame()
-  for(i in 1:length(countries_training$ISO3)){
-    df.ts <- country_timeseries(raw_data, countries_training$ISO3[i], incidence=incidence_flag, plot = F)
+  for(i in 1:length(countries_training$iso3)){
+    df.ts <- country_timeseries(raw_data, countries_training$iso3[i], incidence=incidence_flag, plot = F)
     df.ts.lag <- create_lag(df.ts, num_lag, incidence=incidence_flag)
-    df.ts.lag$ISO3 <- countries_training$ISO3[i]
-    df.ts.lag$Country <- countries_training$country[i]
+    df.ts.lag$iso3 <- countries_training$iso3[i]
+    df.ts.lag$Country <- countries_training$Country[i]
     df_ts_lag_train <- rbind(df_ts_lag_train,df.ts.lag)
   }
-  df_ts_lag_train <- dplyr::select(df_ts_lag_train, date, Country, ISO3, everything())
+  df_ts_lag_train <- dplyr::select(df_ts_lag_train, date, Country, iso3, everything())
   print(paste0("Total number of countries included in analysis are: ", n_distinct(df_ts_lag_train$Country)))
   # print(paste0("Countries time histories included are: ", distinct(df_ts_lag_train, Country)))
   print(unique(df_ts_lag_train$Country))
@@ -186,7 +187,93 @@ country_ts_lag <- create_lag(country_ts, num=10, incidence = incidence_flag)
 ## Creaint the full dataframe and saving the .csv file -----
 
 output_df <- create_COVID_ML_df(coronavirus, num_cases_min = 1000, num_lag = 14, incidence_flag = incidence_flag)   # to change from cases per million to total cases, change default value in function defined above (country_timeseries)
+names(output_df)[names(output_df) == 'iso3'] <- 'ISO3'
+names(output_df)[names(output_df) == 'recovery'] <- 'recovered'
+# write.csv(output_df, file="InputData/data_COVID_2020_04_02.csv")
 
-write.csv(output_df, file="InputData/data_COVID_2020_04_02.csv")
+## append the USA's state data -----
 
+
+url = 'https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv'
+USA_cases <- readr::read_csv(url)
+USA_cases$fips <- as.numeric(USA_cases$fips)
+unique(USA_cases$state[order(USA_cases$state)])
+
+statesAbbrev <- c("USA_AK","USA_AL","USA_AR","USA_AS","USA_AZ","USA_CA","USA_CO","USA_CT","USA_DC","USA_DE","USA_FL","USA_GA","USA_GU","USA_HI","USA_IA","USA_ID","USA_IL","USA_IN","USA_KS","USA_KY","USA_LA","USA_MA","USA_MD","USA_ME","USA_MI","USA_MN","USA_MO","USA_MS","USA_MT","USA_NC","USA_ND","USA_NE","USA_NH","USA_NJ","USA_NM","USA_NV","USA_NY","USA_OH","USA_OK","USA_OR","USA_PA","USA_PR","USA_RI","USA_SC","USA_SD","USA_TN","USA_TX","USA_UT","USA_VA","USA_VI","USA_VT","USA_WA","USA_WI","USA_WV","USA_WY")
+correspFips <- c("2","1","5","60","4","6","8","9","11","10","12","13","66","15","19","16","17","18","20","21","22","25","24","23","26","27","29","28","30","37","38","31","33","34","35","32","36","39","40","41","42","72","44","45","46","47","48","49","51","78","50","53","55","54","56")
+# correspName <- c("Alaska","Alabama","Arkansas","American Samoa","Arizona","California","Colorado","Connecticut","District of Columbia","Delaware","Florida","Georgia","Guam","Hawaii","Iowa","Idaho","Illinois","Indiana","Kansas","Kentucky","Louisiana","Massachusetts","Maryland","Maine","Michigan","Minnesota","Missouri","Mississippi","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Puerto Rico","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Virginia","Virgin Islands","Vermont","Washington","Wisconsin","West Virginia","Wyoming")
+correspName <- paste0("USA ", c("Alaska","Alabama","Arkansas","American Samoa","Arizona","California","Colorado","Connecticut","District of Columbia","Delaware","Florida","Georgia","Guam","Hawaii","Iowa","Idaho","Illinois","Indiana","Kansas","Kentucky","Louisiana","Massachusetts","Maryland","Maine","Michigan","Minnesota","Missouri","Mississippi","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Puerto Rico","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Virginia","Virgin Islands","Vermont","Washington","Wisconsin","West Virginia","Wyoming"))
+stateIDs <- as.data.frame(cbind(statesAbbrev,correspFips,correspName))
+colnames(stateIDs) <- c("statesAbbrev","statesFips","statesName")
+
+USA_cases$statesAbbrev <- NA
+USA_cases$statesFips <- NA
+USA_cases$statesName <- NA
+
+for(fip in correspFips){
+  keySub <- subset(stateIDs, statesFips == fip)
+  caseSub <- subset(USA_cases, fips == fip)
+  caseSub <- 
+    caseSub %>%
+    arrange(date) %>%
+    dplyr::mutate(new_cases = c(cases[1], diff(cases))) %>%
+    dplyr::mutate(new_deaths = c(deaths[1], diff(deaths)))
+  caseSub$statesAbbrev <- keySub$statesAbbrev[1]
+  caseSub$statesFips <- keySub$statesFips[1]
+  caseSub$statesName <- keySub$statesName[1]
+  # print(str(caseSub))
+  if(fip == correspFips[1]){
+    USA_cases_post <- caseSub
+  }else{
+    USA_cases_post <- rbind(USA_cases_post,caseSub)
+  }
+}
+
+finalUSAdf <- USA_cases_post[,c("date","statesName","statesAbbrev","new_cases","new_deaths")]
+colnames(finalUSAdf) <- c( "date","Country","ISO3","confirmed","death")
+
+finalUSAdf$recovered <- NA
+finalUSAdf$confirmed_cum_per_million <- NA
+finalUSAdf$death_cum_per_million <- NA
+finalUSAdf$confirmed_cum <- USA_cases_post$cases
+finalUSAdf$death_cum <- USA_cases_post$deaths
+finalUSAdf$confirmed_cum_per_million_lag_01 <- NA
+finalUSAdf$death_cum_per_million_lag_01 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_02 <- NA
+finalUSAdf$death_cum_per_million_lag_02 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_03 <- NA
+finalUSAdf$death_cum_per_million_lag_03 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_04 <- NA
+finalUSAdf$death_cum_per_million_lag_04 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_05 <- NA
+finalUSAdf$death_cum_per_million_lag_05 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_06 <- NA
+finalUSAdf$death_cum_per_million_lag_06 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_07 <- NA
+finalUSAdf$death_cum_per_million_lag_07 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_08 <- NA
+finalUSAdf$death_cum_per_million_lag_08 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_09 <- NA
+finalUSAdf$death_cum_per_million_lag_09 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_10 <- NA
+finalUSAdf$death_cum_per_million_lag_10 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_11 <- NA
+finalUSAdf$death_cum_per_million_lag_11 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_12 <- NA
+finalUSAdf$death_cum_per_million_lag_12 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_13 <- NA
+finalUSAdf$death_cum_per_million_lag_13 <- NA
+finalUSAdf$confirmed_cum_per_million_lag_14 <- NA
+finalUSAdf$death_cum_per_million_lag_14 <- NA
+
+output_df <- rbind(output_df, finalUSAdf)
+
+correspName[which(correspName %ni% output_df$Country)]
+
+write.csv(output_df, file="InputData/data_COVID_for_pipeline.csv")
+unique(output_df$Country)
+
+print(max(coronavirus$date))
+print(max(USA_cases$date))
+print(max(finalUSAdf$date))
 
