@@ -15,7 +15,7 @@ The scripts used to build the MONOPOLI framework were run in the following order
 ### Variable Selection Using VSURF, run on an HPC using a system-specific bash script
 ./Scripts/run_VSURF_and_WT_oxford_VSURF_TRUE.R
 
-### Using the selected variables, train a leave-one-out random forests model for each geographic region
+### Using the selected variables, train a leave-one-out random forests model for each geographic region, run on an HPC using a system-specific bash script
 ./Scripts/save_LOO_models_CHUNKS.R
 
 ### Plot the empirical data, generate the 4 scenarios, and estimate the SEIR infection curve
